@@ -50,6 +50,10 @@ input[type=text] { flex: 1; min-width: 0; }
 .banner.bad { background: rgba(220, 40, 40, .14); color: var(--bad); font-weight: 600; }
 .txt-ok { color: var(--ok); }
 .txt-bad { color: var(--bad); }
+.reqs { list-style: none; padding: 0; margin: 0 0 8px; }
+.reqs li { padding: 3px 0; }
+.calstep { background: var(--panel2); border-radius: 8px; padding: 12px; margin-bottom: 10px; min-height: 64px; }
+.calstep b.big { font-size: 17px; display: block; margin-bottom: 4px; }
 .presses { display: flex; flex-wrap: wrap; gap: 6px; }
 .presses span { background: var(--panel2); border-radius: 6px; padding: 3px 8px; font-size: 13px; }
 

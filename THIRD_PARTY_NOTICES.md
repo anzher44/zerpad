@@ -1,13 +1,13 @@
-# Notices tierces
+# Third-party notices
 
-ZherPad réutilise des connaissances de protocole publiées par les projets suivants (licence MIT).
-Le code de ZherPad est écrit indépendamment ; la structure de la télémétrie et la liste des
-commandes de lecture usine en sont adaptées.
+ZherPad builds on protocol knowledge published by the following MIT-licensed projects.
+ZherPad's code is written independently; the telemetry layout, the factory read commands and
+the stick calibration sequence are adapted from them.
 
-## daidr/dualsense-tester — https://github.com/daidr/dualsense-tester
+## daidr/dualsense-tester - https://github.com/daidr/dualsense-tester
 
-Structure du bloc de télémétrie (0x70), commandes de lecture usine (n° de série, PCBA, codes-barres,
-moteurs de gâchettes, tension batterie, pavé tactile), table des couleurs.
+Telemetry block layout (0x70), factory read commands (serial number, PCBA, barcodes, trigger motors,
+battery voltage, touchpad), color table.
 
 ```
 MIT License
@@ -33,10 +33,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## dualshock-tools — https://github.com/dualshock-tools/dualshock-tools.github.io
+## dualshock-tools - https://github.com/dualshock-tools/dualshock-tools.github.io
 
-Modèles de carte mère (BDM-0x0) d'après la version matérielle, détection de contrefaçon
-(date de firmware, requête de réglage fin des sticks), état de la mémoire NVS, couleurs.
+Board revisions (BDM-0x0) from the hardware version, counterfeit detection (firmware date,
+stick fine-tune query), NVS memory state, stick center/range calibration and NVS save sequence, colors.
 
 ```
 MIT License
@@ -62,8 +62,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Idées (sans reprise de code)
+## Ideas (no code reused)
 
-- Sufxx/dualsense-doctor (MIT) : test de retour au centre (« snapback »), mesure du bruit (jitter).
-- Teerasak-Mairoddee/dualsense-tester : zone morte conseillée après le test de dérive.
-- Pilote Linux `hid-playstation.c` : format des rapports d'entrée/sortie, calibration IMU.
+- Sufxx/dualsense-doctor (MIT): return-to-center (snapback) test, noise (jitter) measurement.
+- Teerasak-Mairoddee/dualsense-tester: recommended deadzone after the drift test.
+- Linux driver `hid-playstation.c`: input/output report format, IMU calibration.

@@ -1,9 +1,9 @@
 /*
- * dualsense.js — couche protocole DualSense / DualSense Edge via WebHID.
- * Références : pilote Linux drivers/hid/hid-playstation.c, SDL (SDL_hidapi_ps5.c),
- * documentation communautaire des effets de gâchettes (Nielk1).
- * Lecture seule côté firmware : seules les sorties standard (LED, vibrations,
- * gâchettes) sont envoyées. Aucune écriture de calibration ou de firmware.
+ * DualSense / DualSense Edge protocol over WebHID.
+ * References: Linux driver drivers/hid/hid-playstation.c, SDL (SDL_hidapi_ps5.c),
+ * community documentation of adaptive trigger effects (Nielk1).
+ * Everything here is read-only except standard outputs (LEDs, rumble, triggers)
+ * and the explicit stick calibration methods, which are only called on user request.
  */
 (function (global) {
   'use strict';
@@ -17,7 +17,7 @@
 
   const TOUCH_W = 1920, TOUCH_H = 1080;
 
-  // ---------- CRC32 (Bluetooth) ----------
+  // CRC32 (Bluetooth)
   const CRC_TABLE = (() => {
     const t = new Uint32Array(256);
     for (let n = 0; n < 256; n++) {
@@ -43,10 +43,10 @@
     return lines.join('\n');
   }
 
-  // ---------- Effets de gâchettes adaptatives (11 octets) ----------
+  // Adaptive trigger effects (11 bytes)
   const TriggerFx = {
     off() { return [0x05, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; },
-    // Résistance constante à partir d'une zone (0-9), force 1-8
+    // Constant resistance from a zone (0-9), strength 1-8
     feedback(start, strength) {
       start = clamp(start, 0, 9); strength = clamp(strength, 1, 8);
       const force = (strength - 1) & 7;
@@ -55,13 +55,13 @@
       return [0x21, active & 0xff, (active >> 8) & 0xff,
         zones & 0xff, (zones >>> 8) & 0xff, (zones >>> 16) & 0xff, (zones >>> 24) & 0xff, 0, 0, 0, 0];
     },
-    // Point dur type « arme » : début 2-7, fin début+1..8, force 1-8
+    // "Weapon" click: start 2-7, end start+1..8, strength 1-8
     weapon(start, end, strength) {
       start = clamp(start, 2, 7); end = clamp(end, start + 1, 8); strength = clamp(strength, 1, 8);
       const ss = (1 << start) | (1 << end);
       return [0x25, ss & 0xff, (ss >> 8) & 0xff, strength - 1, 0, 0, 0, 0, 0, 0, 0];
     },
-    // Vibration à partir d'une zone (0-9), amplitude 1-8, fréquence Hz
+    // Vibration from a zone (0-9), amplitude 1-8, frequency in Hz
     vibration(start, amplitude, freq) {
       start = clamp(start, 0, 9); amplitude = clamp(amplitude, 1, 8); freq = clamp(freq, 1, 255);
       const a = (amplitude - 1) & 7;
@@ -74,7 +74,7 @@
   };
   function clamp(v, a, b) { v = Number(v) | 0; return v < a ? a : v > b ? b : v; }
 
-  // ---------- Classe principale ----------
+  // Main class
   class DualSense extends EventTarget {
     constructor() {
       super();
@@ -124,7 +124,7 @@
         vendorId: device.vendorId,
         productId: device.productId,
       };
-      // Le transport se devine via la taille du rapport de sortie 0x31 (BT) dans les collections
+      // Guess the transport from the presence of the Bluetooth report 0x31 in the collections
       this.transport = guessTransport(device);
       device.addEventListener('inputreport', this._onInput);
       this.log('Ouverte : ' + device.productName + ' (' + this.transport.toUpperCase() + ' supposé)');
@@ -153,14 +153,14 @@
     async _getFeature(id) {
       const dv = await this.device.receiveFeatureReport(id);
       let u8 = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
-      // Normalise : octet 0 = identifiant du rapport
+      // Normalize: byte 0 = report ID
       if (u8[0] !== id) { const t = new Uint8Array(u8.length + 1); t[0] = id; t.set(u8, 1); u8 = t; }
       this.features[id] = u8.slice();
       return u8;
     }
 
     async _readFeatures() {
-      // 0x05 : calibration IMU (active aussi le mode de rapport complet en Bluetooth)
+      // 0x05: IMU calibration (reading it also enables full reports over Bluetooth)
       try {
         const b = await this._getFeature(FR_CALIBRATION);
         this.calib = parseCalibration(b);
@@ -198,8 +198,8 @@
       this.dispatchEvent(new Event('info'));
     }
 
-    // ---------- Commandes « test » usine (0x80 → 0x81), lecture seule ----------
-    // Seules des commandes de LECTURE (READ_* / GET_*) sont envoyées ici.
+    // Factory "test" commands (0x80 → 0x81), read-only
+    // Only READ_* / GET_* commands are sent from here.
     _featureLen(id) {
       for (const c of this.device.collections || []) {
         for (const r of c.featureReports || []) {
@@ -222,8 +222,8 @@
     }
 
     /**
-     * Envoie une commande test (périphérique, action, paramètres) et lit la réponse paginée.
-     * Renvoie un Uint8Array (pages de 56 octets concaténées) ou null si pas de réponse.
+     * Sends a test command (device, action, params) and reads the paged answer.
+     * Returns a Uint8Array (concatenated 56-byte pages) or null when there is no answer.
      */
     testCommand(devId, actId, params = [], maxPages = 1) {
       const run = async () => {
@@ -252,7 +252,7 @@
       return p.catch(e => { this.log('Commande test ' + devId + '/' + actId + ' : ' + e.message); return null; });
     }
 
-    /** Lit les informations usine (numéro de série, couleur, codes-barres…). */
+    /** Reads factory information (serial number, color, barcodes…). */
     async readFactoryInfo() {
       const f = {};
       const asciiOf = (u8, len) => {
@@ -275,19 +275,19 @@
         f.btAddress = m.join(':');
       }
       if ((r = await this.testCommand(4, 3))) { const mv = r[0] | (r[1] << 8); if (mv > 2000 && mv < 5000) f.batteryVoltage = mv; }
-      // État de la mémoire de calibration (NVS) : verrouillée = normal
+      // Calibration memory (NVS) state: locked = normal
       if ((r = await this.testCommand(3, 3))) f.nvsLocked = r[0] === 1 ? true : r[0] === 0 ? false : null;
-      // Requête de réglage fin des sticks : toute vraie DualSense y répond
+      // Stick fine-tune query: every genuine DualSense answers it
       r = await this.testCommand(12, 2);
       f.finetuneAnswered = !!r;
-      // Authenticité
+      // Authenticity
       const year = parseInt(String(this.info.buildDate || '').trim().slice(-4), 10);
       const reasons = [];
       if (year && year > new Date().getFullYear()) reasons.push('firmware daté du futur (' + year + ')');
       if (!f.finetuneAnswered && this.transport === 'usb') reasons.push('ne répond pas à la requête de calibration des sticks');
       if (this.info.fwVersion == null) reasons.push('informations firmware illisibles');
       f.cloneReasons = reasons;
-      // Affiche l'essentiel tout de suite, puis complète avec le reste
+      // Publish the essentials right away, then fill in the rest
       this.factory = f;
       this.dispatchEvent(new Event('factory'));
       if ((r = await this.testCommand(1, 17))) { const s = asciiOf(r, 24); f.pcbaId = s ? s.split('').reverse().join('').trim() : null; }
@@ -306,7 +306,7 @@
         if ((r = await this.testCommand(5, 2))) f.touchpadId = hexOf(r.slice(0, 8));
         if ((r = await this.testCommand(5, 4))) f.touchpadFw = hexOf(r.slice(0, 8));
       }
-      // Moteurs des gâchettes adaptatives (modèles récents)
+      // Adaptive trigger motors (recent models)
       if (((this.info.hwVersion || 0) & 0xffff) >= 777) {
         for (const [side, p] of [['L', 1], ['R', 2]]) {
           r = await this.testCommand(7, 37, [p]);
@@ -319,7 +319,7 @@
       return f;
     }
 
-    /** Lit les compteurs d'usage enregistrés dans la manette (télémétrie 0x70). */
+    /** Reads the usage counters stored in the controller (telemetry block 0x70). */
     async readTelemetry() {
       const isEdge = this.model === 'DualSense Edge';
       const block = await this.testCommand(0x70, 1, [], isEdge ? 6 : 4);
@@ -333,7 +333,60 @@
       return this.telemetry;
     }
 
-    // Vibration "v2" à partir de la mise à jour 2.21 (comme le pilote Linux)
+    // Stick calibration. These write to the controller, only call them on user request.
+    // Protocol reverse-engineered by the dualshock-tools project (MIT).
+    // While the NVS memory is locked (normal state), results go to temporary memory:
+    // they are lost on power-off unless nvsSave() is called.
+    async _calibCmd(bytes, expect) {
+      const run = async () => {
+        await this._sendFeature(0x82, bytes);
+        await new Promise(r => setTimeout(r, 20));
+        const r = await this._getFeature(0x83);
+        const got = ((r[0] << 24) | (r[1] << 16) | (r[2] << 8) | r[3]) >>> 0;
+        if (got !== expect) {
+          const err = new Error('réponse inattendue 0x' + hex(got, 8) + ' (attendu 0x' + hex(expect, 8) + ')');
+          err.code = r[3];
+          throw err;
+        }
+      };
+      const p = this._testLock.then(run, run);
+      this._testLock = p.catch(() => null);
+      return p;
+    }
+    calibCenterBegin() { return this._calibCmd([1, 1, 1], 0x83010101); }
+    calibCenterSample() { return this._calibCmd([3, 1, 1], 0x83010101); }
+    calibCenterEnd() { return this._calibCmd([2, 1, 1], 0x83010102); }
+    calibRangeBegin() { return this._calibCmd([1, 1, 2], 0x83010201); }
+    calibRangeEnd() { return this._calibCmd([2, 1, 2], 0x83010202); }
+
+    /** NVS state: true = locked (normal, changes are temporary), false = unlocked, null = unknown. */
+    async nvsStatus() {
+      const r = await this.testCommand(3, 3);
+      return r ? (r[0] === 1 ? true : r[0] === 0 ? false : null) : null;
+    }
+
+    /** Commits the current (temporary) calibration to permanent memory. */
+    async nvsSave() {
+      const run = async () => {
+        await this._sendFeature(0x80, [3, 2, 101, 50, 64, 12]);   // NVS unlock
+        await new Promise(r => setTimeout(r, 50));
+        await this._getFeature(0x81);
+        await this._sendFeature(0x80, [3, 1]);                   // NVS lock = commit
+        await new Promise(r => setTimeout(r, 50));
+        await this._getFeature(0x81);
+      };
+      const p = this._testLock.then(run, run);
+      this._testLock = p.catch(() => null);
+      await p;
+      return this.nvsStatus();
+    }
+
+    /** Reboots the controller: unsaved (temporary) calibration is discarded. */
+    async reboot() {
+      try { await this._sendFeature(0x80, [1, 1]); } catch (e) { /* the controller disconnects */ }
+    }
+
+    // "v2" rumble from update 2.21 onwards (same rule as the Linux driver)
     get vibrationV2() { return (this.info.updateVersion || 0) >= 0x0215; }
 
     _onInput(e) {
@@ -350,7 +403,7 @@
         this.simpleMode = false;
         st = parseFull(u8, 0, this.calib);
       } else if (id === 0x01 && u8.length >= 9) {
-        // Mode simplifié Bluetooth (avant lecture de la calibration)
+        // Simplified Bluetooth mode (before the calibration report is read)
         if (this.transport !== 'bt') { this.transport = 'bt'; this.dispatchEvent(new Event('transport')); }
         this.simpleMode = true;
         st = parseSimple(u8);
@@ -370,20 +423,20 @@
       this.dispatchEvent(new CustomEvent('state', { detail: st }));
     }
 
-    // ---------- Sortie ----------
+    // Output
     buildCommon() {
       const o = this.out;
       const c = new Uint8Array(47);
-      // valid_flag0 : vibration compatible (v1), sélection haptique, moteurs gâchettes D/G
+      // valid_flag0: compatible rumble (v1), haptics select, right/left trigger motors
       c[0] = (this.vibrationV2 ? 0 : 0x01) | 0x02 | 0x04 | 0x08;
-      // valid_flag1 : LED micro, barre lumineuse, LED joueur
+      // valid_flag1: mic LED, lightbar, player LEDs
       c[1] = 0x01 | 0x04 | 0x10;
-      c[2] = o.motorR & 0xff;   // moteur droit (léger)
-      c[3] = o.motorL & 0xff;   // moteur gauche (fort)
+      c[2] = o.motorR & 0xff;   // right motor (light)
+      c[3] = o.motorL & 0xff;   // left motor (strong)
       c[8] = o.muteLed & 0xff;
       c.set(o.trigR.slice(0, 11), 10);
       c.set(o.trigL.slice(0, 11), 21);
-      // valid_flag2 : configuration barre lumineuse (une fois) + vibration v2
+      // valid_flag2: lightbar setup (once) + v2 rumble
       let vf2 = this.vibrationV2 ? 0x04 : 0;
       if (!this._lightbarSetupDone) { vf2 |= 0x02; c[41] = 0x02; }
       c[38] = vf2;
@@ -393,7 +446,7 @@
       return c;
     }
 
-    // Regroupe les envois (un seul rapport par image d'animation)
+    // Coalesce updates (one report per frame)
     update(patch) {
       Object.assign(this.out, patch);
       if (this._sendQueued) return;
@@ -436,7 +489,7 @@
     return 'usb';
   }
 
-  // ---------- Analyse des rapports ----------
+  // Report parsing
   const s16 = (u8, i) => { const v = u8[i] | (u8[i + 1] << 8); return v & 0x8000 ? v - 0x10000 : v; };
   const u32 = (u8, i) => (u8[i] | (u8[i + 1] << 8) | (u8[i + 2] << 16) | (u8[i + 3] << 24)) >>> 0;
 
@@ -533,21 +586,21 @@
       return { bias: plus - range / 2, k: range ? 2 / range : 0 };
     };
     c.accel = [ac(c.accXPlus, c.accXMinus), ac(c.accYPlus, c.accYMinus), ac(c.accZPlus, c.accZMinus)];
-    // Validité : dénominateurs non nuls et plausibles
+    // Validity: non-zero, plausible denominators
     c.valid = c.gyro.every(a => a.k > 0 && isFinite(a.k)) && c.accel.every(a => a.k > 0 && isFinite(a.k)) && speed2x > 0;
     return c;
   }
 
   function applyGyro(raw, calib) {
     if (calib && calib.valid) return raw.map((v, i) => (v - calib.gyro[i].bias) * calib.gyro[i].k);
-    return raw.map(v => v / 16.384);   // repli : ±2000 °/s
+    return raw.map(v => v / 16.384);   // fallback: ±2000 °/s
   }
   function applyAccel(raw, calib) {
     if (calib && calib.valid) return raw.map((v, i) => (v - calib.accel[i].bias) * calib.accel[i].k);
-    return raw.map(v => v / 8192);     // repli : ±4 g
+    return raw.map(v => v / 8192);     // fallback: ±4 g
   }
 
-  // Couleur d'après les caractères 5-6 du numéro de série (sources : dualshock-tools, daidr/dualsense-tester)
+  // Color from characters 5-6 of the serial number (sources: dualshock-tools, daidr/dualsense-tester)
   const COLORS = {
     '00': 'Blanc (White)', '01': 'Noir (Midnight Black)', '02': 'Rouge (Cosmic Red)', '03': 'Rose (Nova Pink)',
     '04': 'Violet (Galactic Purple)', '05': 'Bleu (Starlight Blue)', '06': 'Camouflage gris', '07': 'Volcanic Red',
@@ -559,7 +612,7 @@
     'ZE': 'Genshin Impact (édition limitée)', 'ZF': '007 First Light (édition limitée)',
   };
 
-  // Modèle de carte mère d'après la version matérielle (rapport 0x20)
+  // Board model from the hardware version (report 0x20)
   function boardModel(hw, model) {
     if (hw == null || model === 'DualSense Edge') return null;
     const a = (hw >> 8) & 0xff;
@@ -567,8 +620,8 @@
       0x09: 'BDM-060R', 0x11: 'BDM-060M', 0x13: 'BDM-060X' }[a] || ('Inconnu (0x' + hex(a) + ')');
   }
 
-  // ---------- Télémétrie (compteurs d'usage en mémoire de la manette) ----------
-  // Structure et décodage d'après daidr/dualsense-tester (MIT), src/utils/dualsense/telemetry.util.ts
+  // Telemetry (usage counters stored in the controller)
+  // Layout and decoding adapted from daidr/dualsense-tester (MIT), src/utils/dualsense/telemetry.util.ts
   function tCount(d, i) {
     const v = d.getUint32(i, true), lo = v & 0xffff, hi = (v >>> 16) & 0xffff;
     if (hi === 0) return lo;
@@ -634,7 +687,7 @@
   }
 
   function fwString(v) {
-    if (v == null) return '—';
+    if (v == null) return '-';
     return ((v >>> 24) & 0xff) + '.' + hex((v >>> 16) & 0xff) + '.' + hex(v & 0xffff, 4) + '  (0x' + hex(v, 8) + ')';
   }
 

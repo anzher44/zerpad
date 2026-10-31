@@ -1,62 +1,90 @@
-# 🎮 ZherPad
+# ZherPad
 
-**Diagnostic complet et validation de manette PS5 DualSense / DualSense Edge, directement dans le navigateur.**
-Rien à installer, aucune donnée envoyée sur internet, lecture seule (aucune écriture firmware ni calibration).
+Browser tool to test, validate and recalibrate PS5 DualSense controllers.
 
-👉 **En ligne :** https://anzher44.github.io/zherpad/
+Live version: https://anzher44.github.io/zherpad/
 
-## Pourquoi ZherPad ?
+It runs entirely in the browser through WebHID. Nothing is installed and nothing is sent over the network.
+The interface is in French.
 
-Les autres testeurs montrent les touches. ZherPad **lit tout ce que la manette sait d'elle-même** et rend un **verdict** avec rapport PDF :
+## Features
 
-| | ZherPad | Testeurs classiques |
-|---|:-:|:-:|
-| Test touches, sticks, gâchettes, pavé, gyroscope | ✔ | ✔ |
-| Vibrations, gâchettes adaptatives, LED, haut-parleur, micro | ✔ | partiel |
-| **Infos usine** : n° de série, couleur/édition, carte mère (BDM), codes-barres batterie et moteurs | ✔ | rare |
-| **Historique d'usage** enregistré dans la manette : heures d'utilisation, charges, appuis par bouton, connexions, erreurs | ✔ | rare |
-| **Détection de contrefaçon** | ✔ | rare |
-| Dérive + **bruit + zone morte conseillée**, **retour au centre** des sticks | ✔ | ✘ |
-| **Validation guidée (21 tests)** → VALIDÉE / NON VALIDÉE + **rapport PDF/JSON** | ✔ | ✘ |
-| Reconnaît une manette **déjà testée** (historique par n° de série) | ✔ | ✘ |
-| Fonctionne **hors ligne** (installable comme application) | ✔ | variable |
+- Live view of buttons, sticks, triggers, touchpad, gyroscope and accelerometer
+- Output tests: rumble, adaptive triggers, lightbar, player LEDs, mic LED, speaker and microphone
+- Factory info: serial number, color, board revision, PCBA ID, battery and motor barcodes, battery voltage
+- Usage counters stored in the controller: hours of use, charge cycles, presses per button, connections, charging errors
+- Counterfeit detection
+- Stick drift with noise and a recommended deadzone, plus a return-to-center test
+- Stick recalibration (center and range)
+- Guided validation with a PDF or JSON report
+- Works offline once loaded, and can be installed as an app
 
-## Les 21 tests de validation
+## Requirements
 
-| # | Test | Critère |
-|---|------|---------|
-| 1 | Communication & identité | rapports reçus, firmware, MAC, calibration lisibles |
-| 2 | Authenticité & infos usine | aucun signe de contrefaçon, n° de série lisible |
-| 3 | Batterie & charge | pas d'erreur ; en USB la manette doit charger |
-| 4 | Tous les boutons | chaque bouton pressé puis relâché (19, ou 23 pour l'Edge) |
-| 5 | Dérive des sticks | écart au repos ≤ 10 %, bruit ≤ 2,5 + zone morte conseillée |
-| 6 | Amplitude & circularité | butées atteintes, contour ≥ 90 %, erreur < 15 % |
-| 7 | Retour au centre | 5 lâchers par stick : retour ≤ 10 %, rebond médian < 18 % |
-| 8 | Gâchettes L2/R2 | course 0 → ≥ 250, retour ≤ 5, bit numérique cohérent |
-| 9 | Pavé tactile | ≥ 95 % de surface + 2 doigts simultanés |
-| 10 | Capteurs au repos | gyro < 3 °/s, bruit < 2 °/s, gravité 0,9–1,1 g |
-| 11 | Capteurs en mouvement | chaque axe gyro > 150 °/s, chaque axe accéléro ±0,7 g |
-| 12–13 | Vibrations G / D | confirmation opérateur |
-| 14–15 | Gâchettes adaptatives L2 / R2 | confirmation opérateur |
-| 16–18 | Barre lumineuse, LED joueur, LED micro | confirmation opérateur |
-| 19–21 | Haut-parleur, micro, prise jack | optionnels (USB) |
+- Chrome or Edge on a desktop computer. Firefox and Safari do not support WebHID.
+- USB cable recommended. Bluetooth works for most tests, but factory info is partial and audio tests and calibration need USB.
 
-## Utilisation
+## Usage
 
-1. Ouvrir le site dans **Google Chrome** ou **Microsoft Edge** sur ordinateur (WebHID ; Firefox/Safari non compatibles).
-2. Brancher la manette en **USB** (recommandé : infos usine complètes et tests audio) ou en Bluetooth.
-3. **Connecter la manette** → choisir « DualSense Wireless Controller ».
-4. Onglet **Infos** : identité, infos usine, historique d'usage. Onglet **Validation** : lancer les tests → **Rapport PDF**.
+1. Open the site and plug in the controller.
+2. Click "Connecter la manette" and select "DualSense Wireless Controller".
+3. The Infos tab shows identity, factory info and usage counters.
+4. The Validation tab runs the tests one by one and prints the report.
+5. The Calibration tab recalibrates the sticks.
 
-## Sécurité
+## Validation tests
 
-- Tout se passe dans le navigateur, **aucune requête réseau**.
-- **Lecture seule** : seules des commandes de lecture usine (READ/GET) et les sorties standard (LED, vibrations, gâchettes) sont envoyées. Aucune écriture de calibration ni de firmware.
+| # | Test | Pass criterion |
+|---|------|----------------|
+| 1 | Communication | input reports, firmware, MAC and IMU calibration readable |
+| 2 | Authenticity | no counterfeit signs, serial number readable |
+| 3 | Battery | no charging error, charges when plugged in |
+| 4 | Buttons | every button pressed and released |
+| 5 | Stick drift | resting deviation 10 % or less, noise 2.5 or less |
+| 6 | Stick range | full travel on both axes, contour 90 %, circularity error under 15 % |
+| 7 | Return to center | 5 releases per stick, back within 10 %, median overshoot under 18 % |
+| 8 | L2 / R2 | full travel and return to rest |
+| 9 | Touchpad | 95 % of the surface and two fingers at once |
+| 10 | Motion at rest | gyro under 3 °/s, gravity between 0.9 and 1.1 g |
+| 11 | Motion | each gyro axis over 150 °/s, each accelerometer axis reaches 0.7 g |
+| 12-18 | Rumble, adaptive triggers, lightbar, LEDs | confirmed by the operator |
+| 19-21 | Speaker, microphone, headphone jack | optional |
 
-## Développement
+## Stick calibration
 
-- `dualsense.js` : protocole HID (entrées USB 0x01 / BT 0x31, feature reports 0x05 / 0x09 / 0x20, commandes usine 0x80→0x81, télémétrie 0x70, sortie avec CRC32 en Bluetooth, effets de gâchettes)
-- `app.js` : interface, tests, rapports ; `style.css` : thème clair/sombre ; `sw.js` + `manifest.webmanifest` : hors ligne
-- `test/mock-test.js` : test automatisé avec une manette simulée (Playwright) : `node test/mock-test.js`
+Calibration fixes a resting position that is off center and travel that does not reach the edge. It does not fix a worn or dirty stick.
 
-Crédits et licences tierces : voir [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Licence MIT.
+It only runs over USB, on a standard DualSense (the Edge does not keep it), with the battery at 30 % or charging.
+New values stay in temporary memory until you click "Sauvegarder définitivement". "Annuler" reboots the controller and restores the previous values.
+
+Don't unplug the controller during a step. Writing to the controller always carries some risk.
+
+## Development
+
+Plain HTML, CSS and JavaScript, no build step.
+
+- `dualsense.js`: HID protocol (input and output reports, feature reports, factory commands, telemetry, calibration)
+- `app.js`: interface, tests and reports
+- `calibration.js`: calibration steps
+- `sw.js`, `manifest.webmanifest`: offline support
+- `test/mock-test.js`: end-to-end test with a simulated controller (Playwright)
+
+Run locally:
+
+```bash
+python3 -m http.server 8000
+```
+
+Run the test:
+
+```bash
+node test/mock-test.js
+```
+
+## Credits
+
+The protocol details come from the Linux `hid-playstation` driver, [daidr/dualsense-tester](https://github.com/daidr/dualsense-tester) and [dualshock-tools](https://github.com/dualshock-tools/dualshock-tools.github.io). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## License
+
+MIT

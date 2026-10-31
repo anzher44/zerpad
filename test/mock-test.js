@@ -1,5 +1,5 @@
-// Test automatisé : simule une DualSense (USB) via un faux navigator.hid dans Chromium.
-// Usage : node test/mock-test.js
+// Automated test: simulates a USB DualSense through a fake navigator.hid in Chromium.
+// Usage: node test/mock-test.js [screenshot-dir]
 const { chromium } = require('playwright');
 const path = require('path');
 
@@ -26,9 +26,13 @@ const MOCK = `
     async close(){ this.opened=false; clearInterval(this.timer); }
     async receiveFeatureReport(id){
       if (id === 0x81) return this.answer81();
+      if (id === 0x83) { const c = this.cal || [0,0,0]; const b = new Uint8Array(64); b[0]=0x83; b[1]=c[1]; b[2]=c[2]; b[3]=c[0]===2?2:1; window.__calLog.push(c.join(',')); return new DataView(b.buffer); }
       return feature(id);
     }
-    async sendFeatureReport(id, data){ if (id === 0x80) { this.cmd = Array.from(data); this.page = 0; } }
+    async sendFeatureReport(id, data){
+      if (id === 0x80) { this.cmd = Array.from(data); this.page = 0; window.__calLog.push('80:' + Array.from(data.slice(0, 6)).join(',')); }
+      if (id === 0x82) this.cal = Array.from(data.slice(0, 3));
+    }
     answer81(){
       const b = new Uint8Array(64); b[0] = 0x81;
       const c = this.cmd || [0,0]; b[1] = c[0]; b[2] = c[1];
@@ -44,13 +48,13 @@ const MOCK = `
       else if (key === '3/3') b[4]=1;
       else if (key === '12/2') { b[2]=2; }
       else if (key === '112/1') {
-        // télémétrie : 4 pages « COMPLETE_2 » puis en-tête effacé
+        // telemetry: 4 "COMPLETE_2" pages, then the header is cleared
         if (this.page >= 4) { b[1]=0; b[2]=0; b[3]=0; return new DataView(b.buffer); }
         b[3] = 3;
         const blk = window.__tel; b.set(blk.slice(this.page*56, this.page*56+56), 4);
         this.page++;
       }
-      else { b[1]=0; b[2]=0; b[3]=0; }  // commande inconnue : pas de réponse
+      else { b[1]=0; b[2]=0; b[3]=0; }  // unknown command: no answer
       return new DataView(b.buffer);
     }
     async sendReport(id, data){ sent.push([id, Array.from(data)]); }
@@ -73,17 +77,18 @@ const MOCK = `
   (() => {
     const blk = new Uint8Array(224), dv = new DataView(blk.buffer, 1);
     const s = 'A42305T1234567890'; for (let i=0;i<s.length;i++) dv.setUint8(i, s.charCodeAt(i));
-    dv.setUint32(21, 360000, true);   // 100 h d'utilisation
-    dv.setUint32(25, 72000, true);    // 20 h de charge
+    dv.setUint32(21, 360000, true);   // 100 h of use
+    dv.setUint32(25, 72000, true);    // 20 h of charging
     dv.setUint16(41, 230, true);      // 230 charges
     dv.setUint16(60, 120, true);
     dv.setUint16(66, 300, true); dv.setUint16(68, 950, true);
     dv.setUint32(78, 940, true);
     dv.setUint32(86, 150000, true); dv.setUint32(92, 140000, true);
-    dv.setUint32(130, 52341, true);   // croix
+    dv.setUint32(130, 52341, true);   // cross
     dv.setUint32(158, 81234, true);   // R2
     window.__tel = blk;
   })();
+  window.__calLog = [];
   window.__pad = { lx:128, ly:127, rx:129, ry:128, l2:0, r2:0, b0:8, b1:0, b2:0, gyro:[2,-3,1], accel:[0,8192,0], touch:[null,null], status:0x17, plug:0 };
   const dev = new Dev(); window.__dev = dev;
   const hid = new EventTarget();
@@ -101,7 +106,7 @@ const MOCK = `
   await page.addInitScript(MOCK);
   await page.goto('file://' + path.resolve(__dirname, '..', 'index.html'));
   await page.click('#btnConnect');
-  await page.waitForFunction(() => document.getElementById('i-mac').textContent !== '—');
+  await page.waitForFunction(() => document.getElementById('i-mac').textContent !== '-');
   await page.waitForTimeout(1200);
   const info = await page.evaluate(() => ['i-model','i-conn','i-mac','i-fw','i-upd','i-hw','i-build','i-bat','i-charge','i-rate','i-mode'].map(id => id + ' = ' + document.getElementById(id).textContent));
   console.log(info.join('\n'));
@@ -124,7 +129,7 @@ const MOCK = `
   await set({ status: 0x17 });
   await launch('battery'); await page.waitForTimeout(800); console.log('battery:', await status('battery'));
 
-  // 3 buttons : chaque bouton pressé/relâché
+  // 3 buttons: press and release each one
   await launch('buttons');
   const seq = [{b0:0},{b0:2},{b0:4},{b0:6},{b0:0x18},{b0:0x28},{b0:0x48},{b0:0x88},{b1:1},{b1:2},{b1:4},{b1:8},{b1:0x10},{b1:0x20},{b1:0x40},{b1:0x80},{b2:1},{b2:2},{b2:4}];
   for (const s of seq) { await set(Object.assign({b0:8,b1:0,b2:0}, s)); await page.waitForTimeout(40); await set({b0:8,b1:0,b2:0}); await page.waitForTimeout(40); }
@@ -133,7 +138,7 @@ const MOCK = `
   // 4 drift
   await launch('drift'); await page.waitForTimeout(3500); console.log('drift:', await status('drift'));
 
-  // 5 sticks : rotation
+  // 5 sticks: rotation
   await launch('sticks');
   for (let k = 0; k < 3; k++) for (let a = 0; a < 360; a += 4) {
     const r = a * Math.PI / 180, x = Math.round(127.5 + Math.cos(r) * 127.5), y = Math.round(127.5 + Math.sin(r) * 127.5);
@@ -143,11 +148,11 @@ const MOCK = `
   await set({ lx: 128, ly: 127, rx: 129, ry: 128 });
   console.log('sticks:', await status('sticks'));
 
-  // snapback : 5 lâchers par stick
+  // snapback: 5 releases per stick
   await launch('snapback');
   for (let k = 0; k < 5; k++) {
     await set({ lx: 255, ly: 128, rx: 0, ry: 128 }); await page.waitForTimeout(60);
-    await set({ lx: 120, ly: 128, rx: 134, ry: 128 }); await page.waitForTimeout(30);   // léger rebond
+    await set({ lx: 120, ly: 128, rx: 134, ry: 128 }); await page.waitForTimeout(30);   // slight overshoot
     await set({ lx: 128, ly: 127, rx: 129, ry: 128 }); await page.waitForTimeout(700);
   }
   console.log('snapback:', await status('snapback'));
@@ -184,6 +189,36 @@ const MOCK = `
   const fx = await page.evaluate(() => [DSUtil.TriggerFx.feedback(1,8), DSUtil.TriggerFx.weapon(3,6,8), DSUtil.TriggerFx.vibration(1,8,25)]);
   console.log('fx:', JSON.stringify(fx));
   console.log('crc32("123456789") = 0x' + (await page.evaluate(() => DSUtil.crc32(new TextEncoder().encode('123456789')).toString(16))));
+
+  // Calibration
+  page.on('dialog', d => d.accept());
+  await page.click('.tab[data-tab=cal]');
+  await page.waitForTimeout(800);
+  console.log('cal req:', (await page.textContent('#calReq')).replace(/\s+/g, ' '));
+  await page.check('#calAck');
+  await page.click('#calActions button:has-text("Calibrer le centre")');
+  for (let i = 0; i < 4; i++) {
+    await page.waitForSelector('#calActions button:has-text("Continuer")', { timeout: 8000 });
+    await page.click('#calActions button:has-text("Continuer")');
+  }
+  await page.waitForFunction(() => /Centre calibré|Échec/.test(document.getElementById('calStep').textContent), null, { timeout: 15000 });
+  console.log('cal center:', (await page.textContent('#calStep')).slice(0, 80));
+  await page.click('#calActions button:has-text("amplitude")');
+  for (let k = 0; k < 2; k++) for (let a = 0; a < 360; a += 5) {
+    const r = a * Math.PI / 180, c = v => Math.max(0, Math.min(255, Math.round(v)));
+    await set({ lx: c(127.5 + Math.cos(r) * 127), ly: c(127.5 + Math.sin(r) * 127), rx: c(127.5 + Math.cos(r) * 127), ry: c(127.5 + Math.sin(r) * 127) });
+    await page.waitForTimeout(10);
+  }
+  await set({ lx: 128, ly: 127, rx: 129, ry: 128 });
+  await page.waitForTimeout(400);
+  await page.click('#calActions button:has-text("Terminer")');
+  await page.waitForFunction(() => /Amplitude calibrée|Échec/.test(document.getElementById('calStep').textContent), null, { timeout: 8000 });
+  console.log('cal range:', (await page.textContent('#calStep')).slice(0, 80));
+  await page.click('#calSave');
+  await page.waitForFunction(() => /sauvegardée|non confirmée|Échec/.test(document.getElementById('calStep').textContent), null, { timeout: 8000 });
+  console.log('cal save:', (await page.textContent('#calStep')).slice(0, 60));
+  console.log('cal commands:', (await page.evaluate(() => window.__calLog.filter(x => !x.startsWith('80:1,') && !x.startsWith('80:9,') && !x.startsWith('80:4,') && !x.startsWith('80:5,') && !x.startsWith('80:7,') && !x.startsWith('80:12,') && !x.startsWith('80:112,')))).join(' | '));
+  if (process.argv[2]) await page.screenshot({ path: process.argv[2] + '/cal.png', fullPage: true });
 
   console.log('verdict:', await page.textContent('#verdict'), '|', await page.textContent('#verdictDetail'));
   if (process.argv[2]) {

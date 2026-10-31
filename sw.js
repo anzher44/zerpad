@@ -1,13 +1,13 @@
-// Service worker ZherPad : met le site en cache pour fonctionner hors ligne.
-const CACHE = 'zherpad-v2';
-const FILES = ['./', 'index.html', 'style.css', 'dualsense.js', 'app.js', 'icon.svg', 'manifest.webmanifest'];
+// ZherPad service worker: caches the site so it works offline.
+const CACHE = 'zherpad-v3';
+const FILES = ['./', 'index.html', 'style.css', 'dualsense.js', 'app.js', 'calibration.js', 'icon.svg', 'manifest.webmanifest'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
-// Réseau d'abord (pour avoir les mises à jour), cache si hors ligne
+// Network first (to get updates), cache when offline
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ZherPad</title>
-<meta name="description" content="ZherPad — diagnostic complet, infos usine, historique d'usage et validation de manette PS5 DualSense / DualSense Edge dans le navigateur (WebHID).">
+<meta name="description" content="ZherPad : diagnostic complet, infos usine, historique d'usage et validation de manette PS5 DualSense / DualSense Edge dans le navigateur (WebHID).">
 <meta name="theme-color" content="#2f6bff">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -16,7 +16,7 @@
     <img class="logo" src="icon.svg" alt="" width="40" height="40">
     <div>
       <h1>ZherPad</h1>
-      <p class="sub">Diagnostic et validation complète de manette PS5 DualSense — USB ou Bluetooth</p>
+      <p class="sub">Diagnostic et validation complète de manette PS5 DualSense, en USB ou Bluetooth</p>
     </div>
   </div>
   <div class="conn">
@@ -44,6 +44,7 @@
   <button class="tab" data-tab="live">Entrées</button>
   <button class="tab" data-tab="out">Sorties</button>
   <button class="tab" data-tab="val">Validation</button>
+  <button class="tab" data-tab="cal">Calibration</button>
   <button class="tab" data-tab="raw">Brut</button>
 </nav>
 
@@ -54,31 +55,31 @@
     <div class="card">
       <h2>Identité de la manette</h2>
       <table class="kv" id="infoTable"><tbody>
-        <tr><th>Modèle</th><td id="i-model">—</td></tr>
-        <tr><th>Nom USB/BT</th><td id="i-name">—</td></tr>
-        <tr><th>VID : PID</th><td id="i-vidpid">—</td></tr>
-        <tr><th>Connexion</th><td id="i-conn">—</td></tr>
-        <tr><th>Adresse MAC</th><td id="i-mac">—</td></tr>
-        <tr><th>Version firmware</th><td id="i-fw">—</td></tr>
-        <tr><th>Version mise à jour</th><td id="i-upd">—</td></tr>
-        <tr><th>Version matérielle</th><td id="i-hw">—</td></tr>
-        <tr><th>Date de compilation FW</th><td id="i-build">—</td></tr>
-        <tr><th>Type FW / série SW</th><td id="i-fwtype">—</td></tr>
-        <tr><th>Autres firmwares</th><td id="i-fwextra" class="mono small">—</td></tr>
+        <tr><th>Modèle</th><td id="i-model">-</td></tr>
+        <tr><th>Nom USB/BT</th><td id="i-name">-</td></tr>
+        <tr><th>VID : PID</th><td id="i-vidpid">-</td></tr>
+        <tr><th>Connexion</th><td id="i-conn">-</td></tr>
+        <tr><th>Adresse MAC</th><td id="i-mac">-</td></tr>
+        <tr><th>Version firmware</th><td id="i-fw">-</td></tr>
+        <tr><th>Version mise à jour</th><td id="i-upd">-</td></tr>
+        <tr><th>Version matérielle</th><td id="i-hw">-</td></tr>
+        <tr><th>Date de compilation FW</th><td id="i-build">-</td></tr>
+        <tr><th>Type FW / série SW</th><td id="i-fwtype">-</td></tr>
+        <tr><th>Autres firmwares</th><td id="i-fwextra" class="mono small">-</td></tr>
       </tbody></table>
     </div>
     <div class="card">
       <h2>État en direct</h2>
       <table class="kv"><tbody>
-        <tr><th>Batterie</th><td><div class="bat"><div id="batFill"></div></div> <span id="i-bat">—</span></td></tr>
-        <tr><th>Charge</th><td id="i-charge">—</td></tr>
-        <tr><th>Prise jack</th><td id="i-jack">—</td></tr>
-        <tr><th>Fréquence des rapports</th><td id="i-rate">—</td></tr>
-        <tr><th>Mode de rapport</th><td id="i-mode">—</td></tr>
-        <tr><th>Horodatage capteurs</th><td id="i-ts">—</td></tr>
+        <tr><th>Batterie</th><td><div class="bat"><div id="batFill"></div></div> <span id="i-bat">-</span></td></tr>
+        <tr><th>Charge</th><td id="i-charge">-</td></tr>
+        <tr><th>Prise jack</th><td id="i-jack">-</td></tr>
+        <tr><th>Fréquence des rapports</th><td id="i-rate">-</td></tr>
+        <tr><th>Mode de rapport</th><td id="i-mode">-</td></tr>
+        <tr><th>Horodatage capteurs</th><td id="i-ts">-</td></tr>
       </tbody></table>
       <h3>Calibration usine (IMU)</h3>
-      <table class="kv small"><tbody id="calibBody"><tr><td>—</td></tr></tbody></table>
+      <table class="kv small"><tbody id="calibBody"><tr><td>-</td></tr></tbody></table>
     </div>
   </div>
   <div class="grid2">
@@ -93,7 +94,7 @@
   </div>
 </section>
 
-<!-- ============ ENTRÉES ============ -->
+<!-- ============ INPUTS ============ -->
 <section id="tab-live" class="panel">
   <div class="grid3">
     <div class="card">
@@ -114,13 +115,13 @@
       <div class="trig"><label>R2</label><div class="bar"><div id="barR2"></div></div><span id="valR2" class="mono">0</span></div>
       <h2>Capteurs de mouvement</h2>
       <table class="kv small mono"><tbody>
-        <tr><th>Gyro X (°/s)</th><td id="gx">—</td></tr>
-        <tr><th>Gyro Y (°/s)</th><td id="gy">—</td></tr>
-        <tr><th>Gyro Z (°/s)</th><td id="gz">—</td></tr>
-        <tr><th>Accél X (g)</th><td id="ax">—</td></tr>
-        <tr><th>Accél Y (g)</th><td id="ay">—</td></tr>
-        <tr><th>Accél Z (g)</th><td id="az">—</td></tr>
-        <tr><th>|Accél| (g)</th><td id="amag">—</td></tr>
+        <tr><th>Gyro X (°/s)</th><td id="gx">-</td></tr>
+        <tr><th>Gyro Y (°/s)</th><td id="gy">-</td></tr>
+        <tr><th>Gyro Z (°/s)</th><td id="gz">-</td></tr>
+        <tr><th>Accél X (g)</th><td id="ax">-</td></tr>
+        <tr><th>Accél Y (g)</th><td id="ay">-</td></tr>
+        <tr><th>Accél Z (g)</th><td id="az">-</td></tr>
+        <tr><th>|Accél| (g)</th><td id="amag">-</td></tr>
       </tbody></table>
       <canvas id="cvMotion" width="320" height="110" class="wide"></canvas>
     </div>
@@ -128,11 +129,11 @@
   <div class="card">
     <h2>Pavé tactile</h2>
     <canvas id="cvTouch" width="960" height="540" class="touch"></canvas>
-    <p class="mono small" id="touchTxt">—</p>
+    <p class="mono small" id="touchTxt">-</p>
   </div>
 </section>
 
-<!-- ============ SORTIES ============ -->
+<!-- ============ OUTPUTS ============ -->
 <section id="tab-out" class="panel">
   <div class="grid3">
     <div class="card">
@@ -180,7 +181,7 @@
     <p class="small">Le haut-parleur et le micro de la manette apparaissent comme périphériques audio Windows/macOS/Linux. Le navigateur demandera l'accès au micro pour lister les noms.</p>
     <div class="row wrap">
       <button id="btnAudioScan" class="ghost">Détecter l'audio de la manette</button>
-      <span id="audioStatus" class="small">—</span>
+      <span id="audioStatus" class="small">-</span>
     </div>
     <div class="row wrap">
       <button id="btnSpeaker" class="ghost" disabled>Bip haut-parleur manette</button>
@@ -205,25 +206,66 @@
     </div>
   </div>
   <div class="card">
-    <label class="row">Nom / référence de la manette (pour le rapport) <input type="text" id="unitLabel" placeholder="ex. Manette #12 — client Dupont"></label>
+    <label class="row">Nom / référence de la manette (pour le rapport) <input type="text" id="unitLabel" placeholder="ex. Manette 12, client Dupont"></label>
     <label class="row">Notes <input type="text" id="unitNotes" placeholder="état visuel, remarques…"></label>
   </div>
   <div id="testList" class="tests"></div>
   <div class="card">
     <h2>Historique (ce navigateur)</h2>
-    <div id="history" class="small">—</div>
+    <div id="history" class="small">-</div>
   </div>
 </section>
 
-<!-- ============ BRUT ============ -->
+<!-- ============ CALIBRATION ============ -->
+<section id="tab-cal" class="panel">
+  <div class="card">
+    <h2>Recalibration des sticks</h2>
+    <p class="small">Corrige un <b>centre décalé</b> (dérive d'origine électrique) et une <b>amplitude incomplète</b>, comme le fait l'usine.
+      Une calibration ne répare pas un stick physiquement usé ou sale : si la dérive revient, le module stick doit être nettoyé ou remplacé.</p>
+    <div class="banner warn">
+      Attention, cette opération écrit dans la manette. Les résultats restent <b>temporaires</b> (perdus à l'extinction) tant que vous ne cliquez pas
+      sur « Sauvegarder définitivement ». Ne débranchez pas la manette pendant une étape. Utilisation à vos risques.
+    </div>
+    <h3>Conditions</h3>
+    <ul id="calReq" class="reqs"><li class="small">Connectez une manette…</li></ul>
+    <div class="row wrap">
+      <button id="calRefresh" class="ghost small">Revérifier</button>
+      <label class="row"><input type="checkbox" id="calAck"> J'ai compris : je ne débrancherai pas la manette pendant la calibration.</label>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Mesure du centre</h2>
+      <div class="sticks">
+        <figure><canvas id="cvCalL" width="200" height="200"></canvas><figcaption>Gauche <span id="calTxL" class="mono"></span></figcaption></figure>
+        <figure><canvas id="cvCalR" width="200" height="200"></canvas><figcaption>Droit <span id="calTxR" class="mono"></span></figcaption></figure>
+      </div>
+      <table class="kv small"><tbody id="calCompare"><tr><td>Aucune mesure.</td></tr></tbody></table>
+      <button id="calMeasure" class="ghost">Mesurer le centre (sticks lâchés)</button>
+    </div>
+    <div class="card">
+      <h2>Étapes</h2>
+      <div id="calStep" class="calstep">Choisissez une calibration.</div>
+      <div id="calActions" class="tact"></div>
+      <h3>Changements</h3>
+      <p id="calState" class="small">Aucun changement en cours.</p>
+      <div class="tact">
+        <button id="calSave" class="primary" disabled>Sauvegarder définitivement</button>
+        <button id="calCancel" class="ghost" disabled>Annuler (redémarrer la manette)</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RAW ============ -->
 <section id="tab-raw" class="panel">
   <div class="card">
     <h2>Dernier rapport d'entrée</h2>
-    <pre id="rawInput" class="hex">—</pre>
+    <pre id="rawInput" class="hex">-</pre>
   </div>
   <div class="card">
     <h2>Rapports de fonctionnalité (feature reports)</h2>
-    <pre id="rawFeature" class="hex">—</pre>
+    <pre id="rawFeature" class="hex">-</pre>
   </div>
   <div class="card">
     <h2>Journal</h2>
@@ -232,15 +274,16 @@
 </section>
 </main>
 
-<!-- Rapport imprimable -->
+<!-- Printable report -->
 <section id="printReport" class="print-only"></section>
 
 <footer class="foot small">
-  ZherPad — outil libre, aucune donnée n'est envoyée sur internet. Lecture seule : aucune écriture firmware ni calibration.
+  ZherPad, outil libre. Aucune donnée n'est envoyée sur internet. Le firmware n'est jamais modifié.
   <a href="https://github.com/anzher44/zherpad">Code source</a>
 </footer>
 
 <script src="dualsense.js"></script>
 <script src="app.js"></script>
+<script src="calibration.js"></script>
 </body>
 </html>

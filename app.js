@@ -1,20 +1,20 @@
-/* app.js — ZherPad : interface, visualisation et tests de validation. */
+// ZherPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.0.0';
+  const VERSION = '2.1.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const ds = new DualSense();
-  window.ds = ds; // pratique pour le débogage dans la console
+  window.ds = ds; // handy for debugging from the console
 
-  // ================= Onglets =================
+  // Tabs
   document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + t.dataset.tab));
   }));
 
-  // ================= Connexion =================
+  // Connection
   if (!DualSense.supported) {
     $('unsupported').hidden = false;
     $('btnConnect').disabled = true;
@@ -27,7 +27,7 @@
   $('btnDisconnect').addEventListener('click', () => ds.close());
 
   if (DualSense.supported) {
-    // Reconnexion automatique à une manette déjà autorisée
+    // Reconnect automatically to an already authorized controller
     navigator.hid.getDevices().then(devs => {
       const d = devs.find(d => DualSense.filters.some(f => f.vendorId === d.vendorId && f.productId === d.productId));
       if (d) ds.open(d).catch(e => log('Reconnexion impossible : ' + e.message));
@@ -48,7 +48,7 @@
 
   ds.addEventListener('log', e => log(e.detail));
   ds.addEventListener('ready', () => {
-    $('connStatus').textContent = 'Connectée — ' + ds.model;
+    $('connStatus').textContent = 'Connectée : ' + ds.model;
     $('connStatus').className = 'pill on';
     $('btnConnect').hidden = true;
     $('btnDisconnect').hidden = false;
@@ -86,28 +86,28 @@
     el.textContent = '[' + t + '] ' + msg + '\n' + el.textContent.slice(0, 8000);
   }
 
-  // ================= Infos =================
+  // Info
   function renderInfo() {
     const i = ds.info;
-    $('i-model').textContent = i.model || '—';
-    $('i-name').textContent = i.productName || '—';
-    $('i-vidpid').textContent = i.vendorId != null ? '0x' + hex(i.vendorId, 4) + ' : 0x' + hex(i.productId, 4) : '—';
-    $('i-conn').textContent = ds.transport === 'bt' ? 'Bluetooth' : ds.transport === 'usb' ? 'USB (câble)' : '—';
+    $('i-model').textContent = i.model || '-';
+    $('i-name').textContent = i.productName || '-';
+    $('i-vidpid').textContent = i.vendorId != null ? '0x' + hex(i.vendorId, 4) + ' : 0x' + hex(i.productId, 4) : '-';
+    $('i-conn').textContent = ds.transport === 'bt' ? 'Bluetooth' : ds.transport === 'usb' ? 'USB (câble)' : '-';
     $('bthint').hidden = ds.transport !== 'bt';
-    $('i-mac').textContent = i.mac || '—';
+    $('i-mac').textContent = i.mac || '-';
     $('i-fw').textContent = fwString(i.fwVersion);
-    $('i-upd').textContent = i.updateVersion != null ? hex(i.updateVersion >> 8) + '.' + hex(i.updateVersion & 0xff) + '  (0x' + hex(i.updateVersion, 4) + ')' : '—';
-    $('i-hw').textContent = i.hwVersion != null ? '0x' + hex(i.hwVersion, 8) : '—';
-    $('i-build').textContent = i.buildDate ? i.buildDate + ' ' + (i.buildTime || '') : '—';
-    $('i-fwtype').textContent = i.fwType != null ? '0x' + hex(i.fwType, 4) + ' / 0x' + hex(i.swSeries, 4) : '—';
+    $('i-upd').textContent = i.updateVersion != null ? hex(i.updateVersion >> 8) + '.' + hex(i.updateVersion & 0xff) + '  (0x' + hex(i.updateVersion, 4) + ')' : '-';
+    $('i-hw').textContent = i.hwVersion != null ? '0x' + hex(i.hwVersion, 8) : '-';
+    $('i-build').textContent = i.buildDate ? i.buildDate + ' ' + (i.buildTime || '') : '-';
+    $('i-fwtype').textContent = i.fwType != null ? '0x' + hex(i.fwType, 4) + ' / 0x' + hex(i.swSeries, 4) : '-';
     $('i-fwextra').textContent = i.sblVersion != null
-      ? 'SBL ' + fwString(i.sblVersion).split(' ')[0] + ' · DSP 0x' + hex(i.dspVersion, 8) + ' · MCU-DSP ' + fwString(i.spiderVersion).split(' ')[0] + (i.deviceInfo && /[^0]/.test(i.deviceInfo) ? ' · device 0x' + i.deviceInfo : '')
-      : '—';
+      ? 'SBL ' + fwString(i.sblVersion).split(' ')[0] + ', DSP 0x' + hex(i.dspVersion, 8) + ', MCU-DSP ' + fwString(i.spiderVersion).split(' ')[0] + (i.deviceInfo && /[^0]/.test(i.deviceInfo) ? ', device 0x' + i.deviceInfo : '')
+      : '-';
     const c = ds.calib;
     const body = $('calibBody');
-    if (!c) { body.innerHTML = '<tr><td>—</td></tr>'; return; }
+    if (!c) { body.innerHTML = '<tr><td>-</td></tr>'; return; }
     const rows = [
-      ['Validité', c.valid ? '✔ cohérente' : '✘ incohérente (valeurs par défaut utilisées)'],
+      ['Validité', c.valid ? 'cohérente' : 'incohérente (valeurs par défaut utilisées)'],
       ['Biais gyro (P/Y/R)', c.gyroPitchBias + ' / ' + c.gyroYawBias + ' / ' + c.gyroRollBias],
       ['Gyro pitch +/-', c.gyroPitchPlus + ' / ' + c.gyroPitchMinus],
       ['Gyro yaw +/-', c.gyroYawPlus + ' / ' + c.gyroYawMinus],
@@ -124,23 +124,24 @@
     const names = { 0x05: 'Calibration IMU', 0x09: 'Appairage / MAC', 0x20: 'Firmware' };
     $('rawFeature').textContent = Object.keys(ds.features).map(id =>
       '# 0x' + hex(+id) + ' ' + (names[id] || '') + ' (' + ds.features[id].length + ' octets)\n' + hexDump(ds.features[id])
-    ).join('\n\n') || '—';
+    ).join('\n\n') || '-';
   }
 
-  // ================= Infos usine & télémétrie =================
+  // Factory info & telemetry
   function fmtDuration(sec) {
-    if (sec == null) return '—';
+    if (sec == null) return '-';
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
     return h ? h + ' h ' + String(m).padStart(2, '0') + ' min' : m + ' min ' + (sec % 60) + ' s';
   }
-  const num = n => n == null ? '—' : Number(n).toLocaleString('fr-FR');
+  const yesNo = ok => ok ? 'OK' : 'non';
+  const num = n => n == null ? '-' : Number(n).toLocaleString('fr-FR');
 
   function renderFactory() {
     const f = ds.factory || {}, i = ds.info;
     const rows = [
       ['Authenticité', f.cloneReasons && f.cloneReasons.length
-        ? '<b class="txt-bad">⚠ Suspecte : ' + esc(f.cloneReasons.join(', ')) + '</b>'
-        : '<b class="txt-ok">✔ Manette Sony d\'origine (aucun signe de copie)</b>'],
+        ? '<b class="txt-bad">Suspecte : ' + esc(f.cloneReasons.join(', ')) + '</b>'
+        : '<b class="txt-ok">Manette Sony d\'origine (aucun signe de copie)</b>'],
       ['Numéro de série', f.serial],
       ['Couleur / édition', f.color ? f.color + ' (code ' + f.colorCode + ')' : f.colorCode ? 'Inconnue (code ' + f.colorCode + ')' : null],
       ['Carte mère', i.boardModel],
@@ -152,17 +153,17 @@
       ['Code-barres VCM gauche', f.vcmLeft],
       ['Code-barres VCM droit', f.vcmRight],
       ['Pièces assemblées', f.assembleParts ? '0x' + f.assembleParts : null],
-      ['Moteur gâchette L2', f.triggerMotorL ? f.triggerMotorL.info + ' · n° ' + f.triggerMotorL.serial : null],
-      ['Moteur gâchette R2', f.triggerMotorR ? f.triggerMotorR.info + ' · n° ' + f.triggerMotorR.serial : null],
-      ['Pavé tactile (ID / FW)', f.touchpadId ? f.touchpadId + ' / ' + (f.touchpadFw || '—') : null],
-      ['Mémoire de calibration', f.nvsLocked === true ? 'Verrouillée (normal)' : f.nvsLocked === false ? '⚠ Déverrouillée (calibration modifiée ou en cours)' : null],
+      ['Moteur gâchette L2', f.triggerMotorL ? f.triggerMotorL.info + ', n° ' + f.triggerMotorL.serial : null],
+      ['Moteur gâchette R2', f.triggerMotorR ? f.triggerMotorR.info + ', n° ' + f.triggerMotorR.serial : null],
+      ['Pavé tactile (ID / FW)', f.touchpadId ? f.touchpadId + ' / ' + (f.touchpadFw || '-') : null],
+      ['Mémoire de calibration', f.nvsLocked === true ? 'Verrouillée (normal)' : f.nvsLocked === false ? 'Déverrouillée (calibration modifiée ou en cours)' : null],
     ];
     $('factoryBody').innerHTML = rows.filter(r => r[1]).map(r =>
       '<tr><th>' + r[0] + '</th>' + (r[0] === 'Authenticité' ? '<td>' + r[1] : '<td class="mono">' + esc(r[1])) + '</td></tr>').join('') ||
       '<tr><td class="small">Aucune info usine disponible (firmware ancien ou manette non compatible).</td></tr>';
     const cw = $('cloneWarn');
     cw.hidden = !(f.cloneReasons && f.cloneReasons.length);
-    cw.textContent = '⚠ Attention : cette manette présente des signes de copie / contrefaçon — ' + (f.cloneReasons || []).join(', ') + '.';
+    cw.textContent = 'Attention : cette manette présente des signes de contrefaçon (' + (f.cloneReasons || []).join(', ') + ').';
   }
 
   const TEL_BTN = { up: '↑', down: '↓', left: '←', right: '→', triangle: '△', circle: '○', cross: '✕', square: '□',
@@ -183,21 +184,21 @@
       ['Temps d\'utilisation total', fmtDuration(t.totalActiveTime)],
       ['Niveau d\'usage (indicatif)', usageLevel(t.totalActiveTime)],
       ['Temps de charge total', fmtDuration(t.totalChargeTime)],
-      ['Charges (branchements)', num(t.batteryChargeCount) + ' · complètes : ' + num(t.fullChargeCount)],
+      ['Charges (branchements)', num(t.batteryChargeCount) + ', complètes : ' + num(t.fullChargeCount)],
       ['Vibrations actives', fmtDuration(t.hapticActiveTime)],
-      ['Gâchettes adaptatives actives', 'G ' + fmtDuration(t.triggerLeftActiveTime) + ' · D ' + fmtDuration(t.triggerRightActiveTime)],
+      ['Gâchettes adaptatives actives', 'G ' + fmtDuration(t.triggerLeftActiveTime) + ', D ' + fmtDuration(t.triggerRightActiveTime)],
       ['Connexions USB / Bluetooth', num(t.usbConnectCount) + ' / ' + num(t.btConnectCount) + (t.btTimeoutCount ? ' (pertes BT : ' + num(t.btTimeoutCount) + ')' : '')],
-      ['Authentifications console', num(t.authSuccessCount) + ' réussies · ' + num(t.authFailCount) + ' échouées'],
+      ['Authentifications console', num(t.authSuccessCount) + ' réussies, ' + num(t.authFailCount) + ' échouées'],
       ['Casque / écouteurs branchés', num(t.headsetDetectCount + t.headphoneDetectCount) + ' fois'],
-      ['Erreurs de charge', errs ? '⚠ ' + errs + ' (tension ' + t.chargeVoltageErrors + ', temp. ' + t.chargeTemperatureErrors + ', PMIC ' + t.chargePmicErrors + ')' : '0'],
-      ['Erreurs démarrage sous-CPU', t.subcpuStartupErrors ? '⚠ ' + num(t.subcpuStartupErrors) : '0'],
+      ['Erreurs de charge', errs ? errs + ' (tension ' + t.chargeVoltageErrors + ', temp. ' + t.chargeTemperatureErrors + ', PMIC ' + t.chargePmicErrors + ')' : '0'],
+      ['Erreurs démarrage sous-CPU', num(t.subcpuStartupErrors)],
     ];
     if (t.sticks && t.sticks.lx != null) {
       rows.push(['Allers-retours stick gauche', num(t.sticks.lx + t.sticks.ly)]);
       rows.push(['Allers-retours stick droit', num(t.sticks.rx + t.sticks.ry)]);
     }
-    if (t.stickModuleL) rows.push(['Module stick G / D', (t.stickModuleL.serial || '—') + ' / ' + (t.stickModuleR.serial || '—')]);
-    if (t.serial && f.serial && t.serial.trim() !== f.serial.trim()) rows.push(['⚠ Incohérence', 'N° de série des compteurs (' + t.serial + ') ≠ n° de série usine : carte échangée ?']);
+    if (t.stickModuleL) rows.push(['Module stick G / D', (t.stickModuleL.serial || '-') + ' / ' + (t.stickModuleR.serial || '-')]);
+    if (t.serial && f.serial && t.serial.trim() !== f.serial.trim()) rows.push(['Incohérence', 'le n° de série des compteurs (' + t.serial + ') ne correspond pas au n° usine, carte échangée ?']);
     const btns = Object.entries(t.buttons || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
     box.innerHTML = '<table class="kv"><tbody>' + rows.map(r => '<tr><th>' + r[0] + '</th><td>' + esc(r[1]) + '</td></tr>').join('') + '</tbody></table>' +
       (btns.length ? '<h3>Appuis enregistrés par bouton</h3><div class="presses">' + btns.map(([k, v]) =>
@@ -216,10 +217,10 @@
     const prev = historyLoad().find(x => (f.serial && x.serial === f.serial) || (!f.serial && ds.info.mac && x.mac === ds.info.mac));
     const el = $('seenBefore');
     el.hidden = !prev;
-    if (prev) el.textContent = 'Cette manette a déjà été testée ici le ' + new Date(prev.date).toLocaleString() + ' — verdict : ' + prev.verdict + (prev.unit ? ' (' + prev.unit + ')' : '') + '.';
+    if (prev) el.textContent = 'Cette manette a déjà été testée ici le ' + new Date(prev.date).toLocaleString() + ', verdict : ' + prev.verdict + (prev.unit ? ' (' + prev.unit + ')' : '') + '.';
   }
 
-  // ================= Boutons =================
+  // Buttons
   const BUTTONS = [
     ['up', '↑'], ['down', '↓'], ['left', '←'], ['right', '→'],
     ['triangle', '△'], ['circle', '○'], ['cross', '✕'], ['square', '□'],
@@ -240,7 +241,7 @@
   }
   buildButtonGrid();
 
-  // ================= Statistiques sticks (circularité) =================
+  // Stick statistics (circularity)
   const BINS = 72;
   function newStickStats() {
     return { bins: new Float32Array(BINS), minX: 255, maxX: 0, minY: 255, maxY: 0, trace: [] };
@@ -264,11 +265,11 @@
   }
   $('btnClearTrace').addEventListener('click', () => { stickStats.L = newStickStats(); stickStats.R = newStickStats(); });
 
-  // ================= Historique mouvement / tactile =================
+  // Motion / touch history
   const motionHist = [];
   const touchTrails = [[], []];
 
-  // ================= Réception des états =================
+  // Incoming state
   ds.addEventListener('state', e => {
     const st = e.detail;
     updateStick(stickStats.L, st.lx, st.ly);
@@ -281,7 +282,7 @@
     for (const t of tests) if (t.status === 'running' && t.onState) t.onState(st);
   });
 
-  // ================= Boucle d'affichage =================
+  // Render loop
   let lastRawDraw = 0;
   function frame(now) {
     requestAnimationFrame(frame);
@@ -291,8 +292,8 @@
     drawStick($('cvL'), stickStats.L, st.lx, st.ly);
     drawStick($('cvR'), stickStats.R, st.rx, st.ry);
     const cL = circularity(stickStats.L), cR = circularity(stickStats.R);
-    $('txL').textContent = st.lx + ',' + st.ly + (cL.error != null ? ' · circ. ' + cL.error.toFixed(1) + '%' : '');
-    $('txR').textContent = st.rx + ',' + st.ry + (cR.error != null ? ' · circ. ' + cR.error.toFixed(1) + '%' : '');
+    $('txL').textContent = st.lx + ',' + st.ly + (cL.error != null ? ', circ. ' + cL.error.toFixed(1) + '%' : '');
+    $('txR').textContent = st.rx + ',' + st.ry + (cR.error != null ? ', circ. ' + cR.error.toFixed(1) + '%' : '');
     $('barL2').style.width = (st.l2 / 2.55) + '%'; $('valL2').textContent = st.l2;
     $('barR2').style.width = (st.r2 / 2.55) + '%'; $('valR2').textContent = st.r2;
     if (st.gyro) {
@@ -303,15 +304,15 @@
     }
     drawTouch(st);
     if (st.battery) {
-      $('i-bat').textContent = st.battery.pct != null ? st.battery.pct + ' %' : '—';
+      $('i-bat').textContent = st.battery.pct != null ? st.battery.pct + ' %' : '-';
       $('batFill').style.width = (st.battery.pct || 0) + '%';
       $('batFill').className = st.battery.pct != null && st.battery.pct <= 20 ? 'low' : '';
       $('i-charge').textContent = st.battery.label;
-      $('i-jack').textContent = (st.plug.headphones ? 'Casque détecté' : 'Rien de branché') + (st.plug.mic ? ' · micro externe' : '') + '  (0x' + hex(st.plug.raw) + ')';
+      $('i-jack').textContent = (st.plug.headphones ? 'Casque détecté' : 'Rien de branché') + (st.plug.mic ? ', micro externe' : '') + '  (0x' + hex(st.plug.raw) + ')';
       $('i-ts').textContent = st.sensorTs;
     }
-    $('i-rate').textContent = ds.reportRate ? ds.reportRate + ' rapports/s (≈ ' + (1000 / ds.reportRate).toFixed(1) + ' ms)' : '—';
-    $('i-mode').textContent = ds.simpleMode ? 'Simplifié (Bluetooth sans capteurs)' : 'Complet — rapport 0x' + hex(st.reportId);
+    $('i-rate').textContent = ds.reportRate ? ds.reportRate + ' rapports/s (≈ ' + (1000 / ds.reportRate).toFixed(1) + ' ms)' : '-';
+    $('i-mode').textContent = ds.simpleMode ? 'Simplifié (Bluetooth sans capteurs)' : 'Complet (rapport 0x' + hex(st.reportId) + ')';
     if (now - lastRawDraw > 100 && ds.lastRaw) {
       lastRawDraw = now;
       $('rawInput').textContent = '# rapport 0x' + hex(ds.lastRaw.id) + ' (' + ds.lastRaw.data.length + ' octets, sans ID)\n' + hexDump(ds.lastRaw.data);
@@ -328,10 +329,10 @@
     ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(C, C, R, 0, 7); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(C - R, C); ctx.lineTo(C + R, C); ctx.moveTo(C, C - R); ctx.lineTo(C, C + R); ctx.stroke();
-    // zone de tolérance dérive (10 %)
+    // drift tolerance zone (10 %)
     ctx.strokeStyle = css('--muted'); ctx.setLineDash([3, 3]);
     ctx.beginPath(); ctx.arc(C, C, R * 0.1, 0, 7); ctx.stroke(); ctx.setLineDash([]);
-    // contour max mesuré
+    // measured outer contour
     ctx.strokeStyle = css('--accent2'); ctx.lineWidth = 2; ctx.beginPath();
     let started = false;
     for (let i = 0; i <= BINS; i++) {
@@ -364,7 +365,7 @@
     }
   }
 
-  // Couverture du pavé tactile pour le test
+  // Touchpad coverage for the test
   const TGX = 12, TGY = 6;
   let touchGrid = new Uint8Array(TGX * TGY);
   let touchShowGrid = false;
@@ -391,11 +392,11 @@
       }
     });
     $('touchTxt').textContent = (st.touches || []).map((t, k) =>
-      'Doigt ' + (k + 1) + ' : ' + (t.active ? 'x=' + t.x + ' y=' + t.y + ' (id ' + t.id + ')' : 'aucun')).join('   ·   ') +
-      (st.buttons.touchpad ? '   ·   CLIC' : '');
+      'Doigt ' + (k + 1) + ' : ' + (t.active ? 'x=' + t.x + ' y=' + t.y + ' (id ' + t.id + ')' : 'aucun')).join('  ,   ') +
+      (st.buttons.touchpad ? '  ,   CLIC' : '');
   }
 
-  // ================= Sorties =================
+  // Outputs
   const motL = $('motL'), motR = $('motR');
   motL.addEventListener('input', () => { $('motLv').textContent = motL.value; ds.update({ motorL: +motL.value }); });
   motR.addEventListener('input', () => { $('motRv').textContent = motR.value; ds.update({ motorR: +motR.value }); });
@@ -434,19 +435,19 @@
     ds.update(patch);
   });
 
-  // ---- Audio de la manette (USB) ----
+  // Controller audio (USB)
   let audioOut = null, audioIn = null, micStream = null, micRAF = 0;
   const isPadAudio = d => /wireless controller|dualsense|054c:0ce6|054c:0df2/i.test(d.label);
   $('btnAudioScan').addEventListener('click', scanAudio);
   async function scanAudio() {
     try {
-      // L'autorisation micro est nécessaire pour obtenir les noms des périphériques
+      // Microphone permission is required to get device names
       const s = await navigator.mediaDevices.getUserMedia({ audio: true });
       s.getTracks().forEach(t => t.stop());
       const devs = await navigator.mediaDevices.enumerateDevices();
       audioOut = devs.find(d => d.kind === 'audiooutput' && isPadAudio(d)) || null;
       audioIn = devs.find(d => d.kind === 'audioinput' && isPadAudio(d)) || null;
-      $('audioStatus').textContent = 'Haut-parleur : ' + (audioOut ? audioOut.label : 'non trouvé') + ' · Micro : ' + (audioIn ? audioIn.label : 'non trouvé');
+      $('audioStatus').textContent = 'Haut-parleur : ' + (audioOut ? audioOut.label : 'non trouvé') + ', Micro : ' + (audioIn ? audioIn.label : 'non trouvé');
       $('btnSpeaker').disabled = !audioOut;
       $('btnMic').disabled = !audioIn;
       const names = kind => devs.filter(d => d.kind === kind).map(d => d.label || '(sans nom)');
@@ -497,7 +498,7 @@
   }
   $('btnMic').addEventListener('click', () => toggleMic().catch(e => log('Micro : ' + e.message)));
 
-  // ================= Tests de validation =================
+  // Validation tests
   let tests = [];
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -534,10 +535,10 @@
           const okRate = n > 50;
           t.data = { reportsPerSec: Math.round(n / 1.2), firmware: okFw, mac: okMac, calibration: okCal, simpleMode: ds.simpleMode };
           t.detail = [
-            (okRate ? '✔' : '✘') + ' ' + Math.round(n / 1.2) + ' rapports/s',
-            (okFw ? '✔' : '✘') + ' firmware', (okMac ? '✔' : '✘') + ' MAC', (okCal ? '✔' : '✘') + ' calibration IMU',
-            ds.simpleMode ? '✘ mode simplifié (capteurs non disponibles)' : '✔ rapport complet',
-          ].join(' · ');
+            Math.round(n / 1.2) + ' rapports/s' + (okRate ? '' : ' (trop peu)'),
+            'firmware ' + yesNo(okFw), 'MAC ' + yesNo(okMac), 'calibration IMU ' + yesNo(okCal),
+            ds.simpleMode ? 'mode simplifié, capteurs indisponibles' : 'rapport complet',
+          ].join(', ');
           finish(t, okRate && okFw && okMac && okCal && !ds.simpleMode);
         },
       }),
@@ -547,18 +548,18 @@
         kind: 'auto',
         async start(t) {
           t.status = 'running'; t.detail = 'Lecture des infos usine…'; renderTests();
-          // L'essentiel (n° de série, authenticité) arrive en premier, inutile d'attendre le reste
+          // The essentials (serial, authenticity) arrive first; no need to wait for the rest
           for (let k = 0; k < 100 && !ds.factory && extrasPromise; k++) await sleep(100);
           if (!ds.factory) await ds.readFactoryInfo();
           const f = ds.factory || {};
           t.data = { serial: f.serial || null, color: f.color || null, board: ds.info.boardModel || null, cloneReasons: f.cloneReasons || [], finetune: f.finetuneAnswered };
           const parts = [];
-          parts.push(f.serial ? '✔ n° ' + f.serial : (ds.transport === 'usb' ? '✘ n° de série illisible' : '… n° de série (essayez en USB)'));
+          parts.push(f.serial ? 'n° ' + f.serial : (ds.transport === 'usb' ? 'n° de série illisible' : 'n° de série non lu (essayez en USB)'));
           if (f.color) parts.push(f.color);
           if (ds.info.boardModel) parts.push(ds.info.boardModel);
-          parts.push(f.finetuneAnswered ? '✔ répond aux commandes Sony' : '… pas de réponse aux commandes Sony');
-          if (f.cloneReasons && f.cloneReasons.length) parts.push('⚠ ' + f.cloneReasons.join(', '));
-          t.detail = parts.join(' · ');
+          parts.push(f.finetuneAnswered ? 'répond aux commandes Sony' : 'pas de réponse aux commandes Sony');
+          if (f.cloneReasons && f.cloneReasons.length) parts.push('suspecte : ' + f.cloneReasons.join(', '));
+          t.detail = parts.join(', ');
           finish(t, !(f.cloneReasons && f.cloneReasons.length));
         },
       }),
@@ -572,8 +573,8 @@
           if (!b) { t.detail = 'Aucune donnée batterie (mode simplifié ?)'; return finish(t, false); }
           t.data = { percent: b.pct, state: b.label, raw: '0x' + hex(b.raw), transport: ds.transport };
           let ok = !b.error, note = '';
-          if (ds.transport === 'usb' && b.label === 'Sur batterie') { ok = false; note = ' — branchée en USB mais ne charge pas (câble, port ou circuit de charge ?)'; }
-          t.detail = (b.pct != null ? b.pct + ' % · ' : '') + b.label + note;
+          if (ds.transport === 'usb' && b.label === 'Sur batterie') { ok = false; note = ', branchée en USB mais ne charge pas (câble, port ou circuit de charge ?)'; }
+          t.detail = (b.pct != null ? b.pct + ' %, ' : '') + b.label + note;
           finish(t, ok);
         },
       }),
@@ -590,7 +591,7 @@
           }
           const n = Object.keys(d.done).length;
           const missing = btnSet.filter(k => !d.done[k]).map(k => (buttonList().find(b => b[0] === k) || [k, k])[1]);
-          const txt = n + '/' + btnSet.length + (missing.length ? ' — reste : ' + missing.join(' ') : '');
+          const txt = n + '/' + btnSet.length + (missing.length ? ', reste : ' + missing.join(' ') : '');
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
           if (n === btnSet.length) finish(this, true);
         },
@@ -625,12 +626,12 @@
           const ok = r => r.maxDev <= 10 && r.jitter <= 2.5;
           const q = v => v <= 5 ? 'excellent' : v <= 10 ? 'bon' : v <= 15 ? 'dérive légère' : 'DÉRIVE';
           const f = (name, r) => name + ' : ' + r.maxDev + ' % (' + q(r.maxDev) + '), bruit ' + r.jitter + ', zone morte conseillée ' + r.deadzone + ' %';
-          this.detail = f('Gauche', res.L) + ' · ' + f('Droit', res.R);
+          this.detail = f('Gauche', res.L) + ' | ' + f('Droit', res.R);
           finish(this, ok(res.L) && ok(res.R) && d.s.length > 20);
         },
       }),
       T({
-        id: 'sticks', title: 'Sticks — amplitude & circularité',
+        id: 'sticks', title: 'Amplitude et circularité des sticks',
         instructions: 'Faites tourner lentement chaque stick en butée, plusieurs tours complets. Exige : butées atteintes sur les 2 axes, contour couvert ≥ 90 %, erreur de circularité < 15 %.',
         kind: 'auto',
         start(t) { stickStats.L = newStickStats(); stickStats.R = newStickStats(); t.status = 'running'; renderTests(); },
@@ -646,14 +647,14 @@
             allOk = allOk && ok;
           }
           this.data = { left: r.L, right: r.R };
-          const f = (n, x) => n + ' : butées ' + (x.ext ? '✔' : '…') + ' · contour ' + x.coverage + ' %' + (x.error != null ? ' · circ. ' + x.error + ' %' : '');
+          const f = (n, x) => n + ' : butées ' + (x.ext ? 'OK' : 'non') + ', contour ' + x.coverage + ' %' + (x.error != null ? ', circ. ' + x.error + ' %' : '');
           const txt = f('Gauche', r.L) + ' | ' + f('Droit', r.R);
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
           if (allOk) finish(this, true);
         },
       }),
       T({
-        id: 'snapback', title: 'Sticks — retour au centre (ressorts)',
+        id: 'snapback', title: 'Retour au centre des sticks',
         instructions: 'Poussez un stick à fond puis LÂCHEZ-LE d\'un coup (sans l\'accompagner). Répétez 5 fois par stick, dans différentes directions. Exige : retour au centre ≤ 10 % et rebond médian < 18 %.',
         kind: 'auto',
         start(t) {
@@ -690,7 +691,7 @@
           const ok = v => v && v.count >= 5 && v.restMax <= 10 && v.overMedian < 18;
           const txt = ['Gauche', 'Droit'].map((nm, i) => {
             const v = i ? b : a;
-            return nm + ' : ' + (v ? v.count + '/5 lâchers · retour ' + v.restMax + ' % · rebond ' + v.overMedian + ' %' : '0/5 lâchers');
+            return nm + ' : ' + (v ? v.count + '/5 lâchers, retour ' + v.restMax + ' %, rebond ' + v.overMedian + ' %' : '0/5 lâchers');
           }).join(' | ');
           this.data.result = { left: a, right: b };
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
@@ -714,13 +715,13 @@
             if (x.max >= 250 && v <= 5) x.back = true;
           }
           const ok = n => d[n].max >= 250 && d[n].back && d[n].dig;
-          const txt = 'L2 max ' + d.L.max + (ok('L') ? ' ✔' : '') + ' · R2 max ' + d.R.max + (ok('R') ? ' ✔' : '');
+          const txt = 'L2 max ' + d.L.max + (ok('L') ? ' OK' : '') + ', R2 max ' + d.R.max + (ok('R') ? ' OK' : '');
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
           if (ok('L') && ok('R')) finish(this, true);
         },
       }),
       T({
-        id: 'touchpad', title: 'Pavé tactile — surface & multi-touch',
+        id: 'touchpad', title: 'Pavé tactile (surface et 2 doigts)',
         instructions: 'Glissez un doigt sur toute la surface du pavé (cases vertes sur le dessin, onglet Entrées), puis posez 2 doigts en même temps. Exige ≥ 95 % de surface.',
         kind: 'auto',
         start(t) { touchGrid = new Uint8Array(TGX * TGY); touchShowGrid = true; t.status = 'running'; t.data = { two: false }; renderTests(); },
@@ -734,7 +735,7 @@
           if (ts.length === 2 && ts[0].active && ts[1].active) this.data.two = true;
           const cov = touchGrid.reduce((a, b) => a + b, 0) / touchGrid.length;
           this.data.coverage = Math.round(cov * 100);
-          const txt = 'Surface ' + this.data.coverage + ' % · 2 doigts ' + (this.data.two ? '✔' : '…');
+          const txt = 'Surface ' + this.data.coverage + ' %, 2 doigts ' + (this.data.two ? 'OK' : 'non');
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
           if (cov >= 0.95 && this.data.two) { touchShowGrid = false; finish(this, true); }
         },
@@ -758,7 +759,7 @@
           const maxMean = Math.max(...mean.map(Math.abs)), maxSd = Math.max(...sd);
           this.data = { gyroMean: mean.map(v => +v.toFixed(2)), gyroNoise: sd.map(v => +v.toFixed(2)), accelMagnitude: +am.toFixed(3), samples: d.g.length };
           const ok = maxMean < 3 && maxSd < 2 && am > 0.9 && am < 1.1 && d.g.length > 20;
-          this.detail = 'Gyro moyen max ' + maxMean.toFixed(2) + ' °/s · bruit ' + maxSd.toFixed(2) + ' °/s · |a| = ' + am.toFixed(3) + ' g';
+          this.detail = 'Gyro moyen max ' + maxMean.toFixed(2) + ' °/s, bruit ' + maxSd.toFixed(2) + ' °/s, |a| = ' + am.toFixed(3) + ' g';
           finish(this, ok);
         },
       }),
@@ -779,15 +780,15 @@
           }
           const gOk = d.g.map(v => v > 150), aOk = [0, 1, 2].map(i => d.ap[i] > 0.7 && d.an[i] < -0.7);
           const ax = ['X', 'Y', 'Z'];
-          const txt = 'Gyro ' + ax.map((a, i) => a + (gOk[i] ? '✔' : ' ' + Math.round(d.g[i]))).join(' ') +
-            ' · Accél ' + ax.map((a, i) => a + (aOk[i] ? '✔' : '…')).join(' ');
+          const txt = 'Gyro ' + ax.map((a, i) => a + (gOk[i] ? ' OK' : ' ' + Math.round(d.g[i]))).join(' ') +
+            ', accél ' + ax.map((a, i) => a + (aOk[i] ? ' OK' : ' non')).join(' ');
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
           if (gOk.every(Boolean) && aOk.every(Boolean)) finish(this, true);
         },
       }),
-      manual('rumbleL', 'Vibration — moteur gauche (fort)', 'Tenez la manette, cliquez « Lancer » : seul le côté gauche doit vibrer fortement pendant 1,5 s.',
+      manual('rumbleL', 'Vibration du moteur gauche (fort)', 'Tenez la manette, cliquez « Lancer » : seul le côté gauche doit vibrer fortement pendant 1,5 s.',
         async () => { ds.update({ motorL: 255, motorR: 0 }); await sleep(1500); ds.update({ motorL: 0 }); }),
-      manual('rumbleR', 'Vibration — moteur droit (léger)', 'Cliquez « Lancer » : le côté droit doit vibrer (vibration plus fine) pendant 1,5 s.',
+      manual('rumbleR', 'Vibration du moteur droit (léger)', 'Cliquez « Lancer » : le côté droit doit vibrer (vibration plus fine) pendant 1,5 s.',
         async () => { ds.update({ motorL: 0, motorR: 255 }); await sleep(1500); ds.update({ motorR: 0 }); }),
       manual('adaptL', 'Gâchette adaptative L2', 'Cliquez « Lancer », puis appuyez sur L2 : forte résistance, puis point dur « arme », puis vibration (≈ 3 s chacun). La gâchette doit revenir libre ensuite.',
         async () => { await trigSequence('trigL'); }),
@@ -838,7 +839,7 @@
     renderTests();
   }
 
-  // Explique pourquoi l'audio de la manette n'a pas été trouvé
+  // Explains why the controller audio device was not found
   function audioDiag(r, list, what) {
     if (r.error) return 'Accès audio refusé (' + r.error + ') : autorisez le micro pour ce site (icône à gauche de l\'adresse).';
     if (ds.transport === 'bt') return 'Connexion Bluetooth : l\'audio de la manette n\'existe qu\'en USB.';
@@ -882,11 +883,11 @@
       const act = el.querySelector('.tact');
       const mk = (label, cls, fn) => { const b = document.createElement('button'); b.textContent = label; b.className = cls; b.addEventListener('click', fn); act.appendChild(b); };
       if (t.status === 'running' && t.awaitingConfirm) {
-        mk('✔ Fonctionne', 'ok', () => { t.detail = 'Confirmé par l\'opérateur'; finish(t, true); });
-        mk('✘ Ne fonctionne pas', 'bad', () => { t.detail = 'Signalé défectueux par l\'opérateur'; finish(t, false); });
+        mk('Fonctionne', 'ok', () => { t.detail = 'Confirmé par l\'opérateur'; finish(t, true); });
+        mk('Ne fonctionne pas', 'bad', () => { t.detail = 'Signalé défectueux par l\'opérateur'; finish(t, false); });
         mk('Relancer', 'ghost', () => t.start(t));
       } else if (t.status === 'running') {
-        if (t.kind === 'auto' && t.required) mk('Abandonner (échec)', 'bad', () => { t.detail += ' — abandonné'; finish(t, false); });
+        if (t.kind === 'auto' && t.required) mk('Abandonner (échec)', 'bad', () => { t.detail += ' (abandonné)'; finish(t, false); });
         mk('Passer', 'ghost', () => { t.status = 'skip'; touchShowGrid = false; renderTests(); });
       } else {
         mk(t.status === 'pending' ? 'Lancer' : 'Relancer', 'primary', () => {
@@ -916,7 +917,7 @@
       if (!tests.some(t => t.status !== 'pending')) return { key: 'none', label: 'Aucun test lancé', detail: req.length + ' tests obligatoires à réaliser.' };
       return { key: 'partial', label: 'INCOMPLÈTE', detail: done + '/' + req.length + ' tests obligatoires réussis. Restants : ' + notDone.map(t => t.title).join(', ') };
     }
-    return { key: 'ok', label: 'VALIDÉE ✔', detail: 'Tous les tests obligatoires sont réussis (' + req.length + '/' + req.length + ').' + (optFailed.length ? ' Optionnels en échec : ' + optFailed.map(t => t.title).join(', ') : '') };
+    return { key: 'ok', label: 'VALIDÉE', detail: 'Tous les tests obligatoires sont réussis (' + req.length + '/' + req.length + ').' + (optFailed.length ? ' Optionnels en échec : ' + optFailed.map(t => t.title).join(', ') : '') };
   }
   function renderVerdict() {
     const v = computeVerdict();
@@ -927,7 +928,7 @@
 
   $('btnResetTests').addEventListener('click', () => { if (ds.device) buildTests(); });
 
-  // ================= Rapport =================
+  // Report
   function buildReport() {
     const v = computeVerdict();
     const i = ds.info;
@@ -959,7 +960,7 @@
       const h = historyLoad();
       h.unshift({ date: r.date, unit: r.unit, mac: r.device.mac, serial: r.factory && r.factory.serial || null, verdict: r.verdict, model: r.device.model });
       localStorage.setItem('zherpad.history', JSON.stringify(h.slice(0, 100)));
-    } catch (e) { /* stockage indisponible */ }
+    } catch (e) { /* storage unavailable */ }
     renderHistory();
   }
   function renderHistory() {
@@ -984,7 +985,7 @@
     const d = r.device;
     const rows = [['Modèle', d.model], ['Nom', d.productName], ['VID:PID', d.vidPid], ['Connexion', d.transport === 'bt' ? 'Bluetooth' : 'USB'],
       ['Adresse MAC', d.mac], ['Firmware', d.firmware], ['Version MAJ', d.updateVersion], ['Matériel', d.hardware], ['Compilation FW', d.firmwareBuild],
-      ['Batterie', d.battery ? (d.battery.percent != null ? d.battery.percent + ' % — ' : '') + d.battery.state : null],
+      ['Batterie', d.battery ? (d.battery.percent != null ? d.battery.percent + ' %, ' : '') + d.battery.state : null],
       ['Fréquence', d.reportRate ? d.reportRate + ' rapports/s' : null]];
     const f = r.factory || {};
     if (f.serial) rows.splice(1, 0, ['N° de série', f.serial]);
@@ -992,28 +993,28 @@
     if (d.boardModel) rows.push(['Carte mère', d.boardModel]);
     if (f.cloneReasons) rows.push(['Authenticité', f.cloneReasons.length ? 'SUSPECTE : ' + f.cloneReasons.join(', ') : 'Sony d\'origine']);
     const u = r.usage;
-    const usageRows = u && !u.partial ? [['Temps d\'utilisation', fmtDuration(u.totalActiveTime) + ' — ' + usageLevel(u.totalActiveTime)],
+    const usageRows = u && !u.partial ? [['Temps d\'utilisation', fmtDuration(u.totalActiveTime) + ' (' + usageLevel(u.totalActiveTime) + ')'],
       ['Temps de charge', fmtDuration(u.totalChargeTime)], ['Charges', num(u.batteryChargeCount)],
       ['Connexions USB / BT', num(u.usbConnectCount) + ' / ' + num(u.btConnectCount)],
       ['Erreurs de charge', String(u.chargeVoltageErrors + u.chargeTemperatureErrors + u.chargePmicErrors)]]
       : u ? [['Temps d\'utilisation', fmtDuration(u.totalActiveTime)]] : [];
     $('printReport').innerHTML =
-      '<h1>ZherPad — Rapport de test manette ' + esc(d.model || 'DualSense') + '</h1>' +
-      '<p>' + new Date(r.date).toLocaleString() + (r.unit ? ' · <b>' + esc(r.unit) + '</b>' : '') + '</p>' +
+      '<h1>Rapport de test manette ' + esc(d.model || 'DualSense') + '</h1>' +
+      '<p>' + new Date(r.date).toLocaleString() + (r.unit ? ', <b>' + esc(r.unit) + '</b>' : '') + '</p>' +
       '<div class="pverdict ' + computeVerdict().key + '">' + esc(r.verdict) + '</div><p>' + esc(r.verdictDetail) + '</p>' +
       (r.notes ? '<p><b>Notes :</b> ' + esc(r.notes) + '</p>' : '') +
-      '<h2>Identité</h2><table>' + rows.map(x => '<tr><th>' + x[0] + '</th><td>' + esc(x[1] == null ? '—' : x[1]) + '</td></tr>').join('') + '</table>' +
+      '<h2>Identité</h2><table>' + rows.map(x => '<tr><th>' + x[0] + '</th><td>' + esc(x[1] == null ? '-' : x[1]) + '</td></tr>').join('') + '</table>' +
       (usageRows.length ? '<h2>Historique d\'usage (enregistré par la manette)</h2><table>' + usageRows.map(x => '<tr><th>' + x[0] + '</th><td>' + esc(x[1]) + '</td></tr>').join('') + '</table>' : '') +
       '<h2>Résultats</h2><table><tr><th>Test</th><th>Résultat</th><th>Détail</th></tr>' +
       r.tests.map(t => '<tr><td>' + esc(t.title) + (t.required ? '' : ' (opt.)') + '</td><td class="st ' + t.status + '">' + STATUS_TXT[t.status] + '</td><td>' + esc(t.detail) + '</td></tr>').join('') +
-      '</table><p class="small">Généré par ZherPad v' + VERSION + ' (WebHID) — https://github.com/anzher44/zherpad</p>';
+      '</table><p class="small">Généré par ZherPad v' + VERSION + ', https://github.com/anzher44/zherpad</p>';
     window.print();
   });
 
   renderTests();
 
-  // Fonctionnement hors ligne / installation comme application
+  // Offline support / install as an app
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    navigator.serviceWorker.register('sw.js').catch(() => { /* facultatif */ });
+    navigator.serviceWorker.register('sw.js').catch(() => { /* optional */ });
   }
 })();
