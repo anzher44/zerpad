@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testeur DualSense</title>
+<meta name="description" content="Test complet et validation de manette PS5 DualSense / DualSense Edge dans le navigateur (WebHID).">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo">🎮</span>
+    <div>
+      <h1>Testeur DualSense</h1>
+      <p class="sub">Test et validation complète de manette PS5 — USB ou Bluetooth</p>
+    </div>
+  </div>
+  <div class="conn">
+    <span id="connStatus" class="pill off">Non connectée</span>
+    <button id="btnConnect" class="primary">Connecter la manette</button>
+    <button id="btnDisconnect" class="ghost" hidden>Déconnecter</button>
+  </div>
+</header>
+
+<div id="unsupported" class="banner warn" hidden>
+  Votre navigateur ne gère pas <b>WebHID</b>. Ouvrez cette page avec <b>Google Chrome</b> ou <b>Microsoft Edge</b> (ordinateur).
+</div>
+<div id="hint" class="banner info">
+  1. Branchez la manette en <b>USB</b> (recommandé) ou appairez-la en Bluetooth. 2. Cliquez sur <b>Connecter la manette</b> et choisissez
+  « DualSense Wireless Controller ». 3. Suivez l'onglet <b>Validation</b>.
+</div>
+<div id="bthint" class="banner warn" hidden>
+  Connexion <b>Bluetooth</b> détectée : tout fonctionne sauf les tests audio (haut-parleur / micro), qui exigent l'USB.
+</div>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-tab="info">Infos</button>
+  <button class="tab" data-tab="live">Entrées</button>
+  <button class="tab" data-tab="out">Sorties</button>
+  <button class="tab" data-tab="val">Validation</button>
+  <button class="tab" data-tab="raw">Brut</button>
+</nav>
+
+<main>
+<!-- ============ INFOS ============ -->
+<section id="tab-info" class="panel active">
+  <div class="grid2">
+    <div class="card">
+      <h2>Identité de la manette</h2>
+      <table class="kv" id="infoTable"><tbody>
+        <tr><th>Modèle</th><td id="i-model">—</td></tr>
+        <tr><th>Nom USB/BT</th><td id="i-name">—</td></tr>
+        <tr><th>VID : PID</th><td id="i-vidpid">—</td></tr>
+        <tr><th>Connexion</th><td id="i-conn">—</td></tr>
+        <tr><th>Adresse MAC</th><td id="i-mac">—</td></tr>
+        <tr><th>Version firmware</th><td id="i-fw">—</td></tr>
+        <tr><th>Version mise à jour</th><td id="i-upd">—</td></tr>
+        <tr><th>Version matérielle</th><td id="i-hw">—</td></tr>
+        <tr><th>Date de compilation FW</th><td id="i-build">—</td></tr>
+        <tr><th>Type FW / série SW</th><td id="i-fwtype">—</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card">
+      <h2>État en direct</h2>
+      <table class="kv"><tbody>
+        <tr><th>Batterie</th><td><div class="bat"><div id="batFill"></div></div> <span id="i-bat">—</span></td></tr>
+        <tr><th>Charge</th><td id="i-charge">—</td></tr>
+        <tr><th>Prise jack</th><td id="i-jack">—</td></tr>
+        <tr><th>Fréquence des rapports</th><td id="i-rate">—</td></tr>
+        <tr><th>Mode de rapport</th><td id="i-mode">—</td></tr>
+        <tr><th>Horodatage capteurs</th><td id="i-ts">—</td></tr>
+      </tbody></table>
+      <h3>Calibration usine (IMU)</h3>
+      <table class="kv small"><tbody id="calibBody"><tr><td>—</td></tr></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ENTRÉES ============ -->
+<section id="tab-live" class="panel">
+  <div class="grid3">
+    <div class="card">
+      <h2>Boutons</h2>
+      <div id="btnGrid" class="btngrid"></div>
+    </div>
+    <div class="card">
+      <h2>Sticks</h2>
+      <div class="sticks">
+        <figure><canvas id="cvL" width="220" height="220"></canvas><figcaption>Gauche <span id="txL" class="mono"></span></figcaption></figure>
+        <figure><canvas id="cvR" width="220" height="220"></canvas><figcaption>Droit <span id="txR" class="mono"></span></figcaption></figure>
+      </div>
+      <button id="btnClearTrace" class="ghost small">Effacer les traces</button>
+    </div>
+    <div class="card">
+      <h2>Gâchettes analogiques</h2>
+      <div class="trig"><label>L2</label><div class="bar"><div id="barL2"></div></div><span id="valL2" class="mono">0</span></div>
+      <div class="trig"><label>R2</label><div class="bar"><div id="barR2"></div></div><span id="valR2" class="mono">0</span></div>
+      <h2>Capteurs de mouvement</h2>
+      <table class="kv small mono"><tbody>
+        <tr><th>Gyro X (°/s)</th><td id="gx">—</td></tr>
+        <tr><th>Gyro Y (°/s)</th><td id="gy">—</td></tr>
+        <tr><th>Gyro Z (°/s)</th><td id="gz">—</td></tr>
+        <tr><th>Accél X (g)</th><td id="ax">—</td></tr>
+        <tr><th>Accél Y (g)</th><td id="ay">—</td></tr>
+        <tr><th>Accél Z (g)</th><td id="az">—</td></tr>
+        <tr><th>|Accél| (g)</th><td id="amag">—</td></tr>
+      </tbody></table>
+      <canvas id="cvMotion" width="320" height="110" class="wide"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Pavé tactile</h2>
+    <canvas id="cvTouch" width="960" height="540" class="touch"></canvas>
+    <p class="mono small" id="touchTxt">—</p>
+  </div>
+</section>
+
+<!-- ============ SORTIES ============ -->
+<section id="tab-out" class="panel">
+  <div class="grid3">
+    <div class="card">
+      <h2>Vibrations</h2>
+      <label class="row">Moteur gauche (fort) <input type="range" id="motL" min="0" max="255" value="0"><span id="motLv" class="mono">0</span></label>
+      <label class="row">Moteur droit (léger) <input type="range" id="motR" min="0" max="255" value="0"><span id="motRv" class="mono">0</span></label>
+      <button id="btnMotStop" class="ghost">Arrêter</button>
+    </div>
+    <div class="card">
+      <h2>Barre lumineuse &amp; LED</h2>
+      <label class="row">Couleur <input type="color" id="lbColor" value="#0040ff"></label>
+      <label class="row">Luminosité LED joueur
+        <select id="ledBright"><option value="0">Forte</option><option value="1">Moyenne</option><option value="2">Faible</option></select>
+      </label>
+      <div class="row">LED joueur
+        <span id="playerLeds" class="leds"></span>
+      </div>
+      <label class="row">LED micro
+        <select id="muteLed"><option value="0">Éteinte</option><option value="1">Allumée</option><option value="2">Clignotante</option></select>
+      </label>
+    </div>
+    <div class="card">
+      <h2>Gâchettes adaptatives</h2>
+      <div class="trigfx">
+        <label>Gâchette <select id="fxSide"><option value="L">L2</option><option value="R">R2</option><option value="B">Les deux</option></select></label>
+        <label>Effet
+          <select id="fxMode">
+            <option value="off">Aucun</option>
+            <option value="feedback">Résistance (depuis une position)</option>
+            <option value="weapon">Arme (point dur)</option>
+            <option value="vibration">Vibration</option>
+            <option value="rigid">Rigide maximum</option>
+          </select>
+        </label>
+        <label class="row">Position début <input type="range" id="fxStart" min="0" max="9" value="2"><span id="fxStartV" class="mono">2</span></label>
+        <label class="row">Position fin (arme) <input type="range" id="fxEnd" min="1" max="8" value="6"><span id="fxEndV" class="mono">6</span></label>
+        <label class="row">Force / amplitude <input type="range" id="fxForce" min="1" max="8" value="8"><span id="fxForceV" class="mono">8</span></label>
+        <label class="row">Fréquence vibration (Hz) <input type="range" id="fxFreq" min="1" max="255" value="30"><span id="fxFreqV" class="mono">30</span></label>
+        <button id="btnFxApply" class="primary">Appliquer</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Audio (USB uniquement)</h2>
+    <p class="small">Le haut-parleur et le micro de la manette apparaissent comme périphériques audio Windows/macOS/Linux. Le navigateur demandera l'accès au micro pour lister les noms.</p>
+    <div class="row wrap">
+      <button id="btnAudioScan" class="ghost">Détecter l'audio de la manette</button>
+      <span id="audioStatus" class="small">—</span>
+    </div>
+    <div class="row wrap">
+      <button id="btnSpeaker" class="ghost" disabled>Bip haut-parleur manette</button>
+      <button id="btnMic" class="ghost" disabled>Écouter le micro</button>
+      <div class="bar micbar"><div id="micLevel"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VALIDATION ============ -->
+<section id="tab-val" class="panel">
+  <div class="card verdict-card">
+    <div>
+      <h2>Verdict</h2>
+      <div id="verdict" class="verdict none">Aucun test lancé</div>
+      <p class="small" id="verdictDetail"></p>
+    </div>
+    <div class="actions">
+      <button id="btnResetTests" class="ghost">Recommencer</button>
+      <button id="btnExportJson" class="ghost">Exporter JSON</button>
+      <button id="btnPrint" class="primary">Rapport PDF / imprimer</button>
+    </div>
+  </div>
+  <div class="card">
+    <label class="row">Nom / référence de la manette (pour le rapport) <input type="text" id="unitLabel" placeholder="ex. Manette #12 — client Dupont"></label>
+    <label class="row">Notes <input type="text" id="unitNotes" placeholder="état visuel, remarques…"></label>
+  </div>
+  <div id="testList" class="tests"></div>
+  <div class="card">
+    <h2>Historique (ce navigateur)</h2>
+    <div id="history" class="small">—</div>
+  </div>
+</section>
+
+<!-- ============ BRUT ============ -->
+<section id="tab-raw" class="panel">
+  <div class="card">
+    <h2>Dernier rapport d'entrée</h2>
+    <pre id="rawInput" class="hex">—</pre>
+  </div>
+  <div class="card">
+    <h2>Rapports de fonctionnalité (feature reports)</h2>
+    <pre id="rawFeature" class="hex">—</pre>
+  </div>
+  <div class="card">
+    <h2>Journal</h2>
+    <pre id="log" class="hex log"></pre>
+  </div>
+</section>
+</main>
+
+<!-- Rapport imprimable -->
+<section id="printReport" class="print-only"></section>
+
+<footer class="foot small">
+  Outil libre — aucune donnée n'est envoyée sur internet. Lecture seule : aucune écriture firmware ni calibration.
+  <a href="https://github.com/anzher44/dualsense-testerPS5">Code source</a>
+</footer>
+
+<script src="dualsense.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
