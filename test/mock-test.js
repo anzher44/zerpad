@@ -16,7 +16,7 @@ const MOCK = `
     }
     if (id === 0x20) {
       const s = 'Jun 19 2023' + '13:40:00'; for (let i=0;i<s.length;i++) b[1+i]=s.charCodeAt(i);
-      const dv = new DataView(b.buffer); dv.setUint32(24, 0x00000419, true); dv.setUint32(28, 0x01040040, true); dv.setUint16(44, 0x0630, true);
+      const dv = new DataView(b.buffer); dv.setUint32(24, 0x00000617, true); dv.setUint32(48, 0x00030005, true); dv.setUint32(52, 0x00620055, true); dv.setUint32(56, 0x01020003, true); dv.setUint32(28, 0x01040040, true); dv.setUint16(44, 0x0630, true);
     }
     return new DataView(b.buffer);
   }
@@ -24,7 +24,35 @@ const MOCK = `
     constructor(){ super(); this.vendorId=0x054c; this.productId=0x0ce6; this.productName='DualSense Wireless Controller'; this.opened=false; this.collections=[]; }
     async open(){ this.opened=true; this.timer=setInterval(()=>this.emit(),4); }
     async close(){ this.opened=false; clearInterval(this.timer); }
-    async receiveFeatureReport(id){ return feature(id); }
+    async receiveFeatureReport(id){
+      if (id === 0x81) return this.answer81();
+      return feature(id);
+    }
+    async sendFeatureReport(id, data){ if (id === 0x80) { this.cmd = Array.from(data); this.page = 0; } }
+    answer81(){
+      const b = new Uint8Array(64); b[0] = 0x81;
+      const c = this.cmd || [0,0]; b[1] = c[0]; b[2] = c[1];
+      const ascii = s => { for (let i=0;i<s.length;i++) b[4+i]=s.charCodeAt(i); };
+      const key = c[0] + '/' + c[1];
+      b[3] = 2;
+      if (key === '1/19') ascii('A42305T1234567890');
+      else if (key === '1/17') ascii('DCBA98765432 1PC');
+      else if (key === '1/24') ascii('BAT123456789');
+      else if (key === '1/9') { b[4]=0; for (let i=0;i<8;i++) b[5+i]=0x10+i; }
+      else if (key === '9/2') [0xA1,0xF2,0x28,0x1B,0x36,0xAC].forEach((v,i)=>b[4+i]=v);
+      else if (key === '4/3') { b[4]=0xC4; b[5]=0x0E; }  // 3780 mV
+      else if (key === '3/3') b[4]=1;
+      else if (key === '12/2') { b[2]=2; }
+      else if (key === '112/1') {
+        // télémétrie : 4 pages « COMPLETE_2 » puis en-tête effacé
+        if (this.page >= 4) { b[1]=0; b[2]=0; b[3]=0; return new DataView(b.buffer); }
+        b[3] = 3;
+        const blk = window.__tel; b.set(blk.slice(this.page*56, this.page*56+56), 4);
+        this.page++;
+      }
+      else { b[1]=0; b[2]=0; b[3]=0; }  // commande inconnue : pas de réponse
+      return new DataView(b.buffer);
+    }
     async sendReport(id, data){ sent.push([id, Array.from(data)]); }
     emit(){
       const s = window.__pad;
@@ -42,6 +70,20 @@ const MOCK = `
       this.dispatchEvent(ev);
     }
   }
+  (() => {
+    const blk = new Uint8Array(224), dv = new DataView(blk.buffer, 1);
+    const s = 'A42305T1234567890'; for (let i=0;i<s.length;i++) dv.setUint8(i, s.charCodeAt(i));
+    dv.setUint32(21, 360000, true);   // 100 h d'utilisation
+    dv.setUint32(25, 72000, true);    // 20 h de charge
+    dv.setUint16(41, 230, true);      // 230 charges
+    dv.setUint16(60, 120, true);
+    dv.setUint16(66, 300, true); dv.setUint16(68, 950, true);
+    dv.setUint32(78, 940, true);
+    dv.setUint32(86, 150000, true); dv.setUint32(92, 140000, true);
+    dv.setUint32(130, 52341, true);   // croix
+    dv.setUint32(158, 81234, true);   // R2
+    window.__tel = blk;
+  })();
   window.__pad = { lx:128, ly:127, rx:129, ry:128, l2:0, r2:0, b0:8, b1:0, b2:0, gyro:[2,-3,1], accel:[0,8192,0], touch:[null,null], status:0x17, plug:0 };
   const dev = new Dev(); window.__dev = dev;
   const hid = new EventTarget();
@@ -63,15 +105,22 @@ const MOCK = `
   await page.waitForTimeout(1200);
   const info = await page.evaluate(() => ['i-model','i-conn','i-mac','i-fw','i-upd','i-hw','i-build','i-bat','i-charge','i-rate','i-mode'].map(id => id + ' = ' + document.getElementById(id).textContent));
   console.log(info.join('\n'));
-  if (process.argv[2]) await page.screenshot({ path: process.argv[2] + '/info.png' });
+  if (process.argv[2]) { await page.waitForTimeout(1500); await page.screenshot({ path: process.argv[2] + '/info.png', fullPage: true }); }
 
   const set = (patch) => page.evaluate(p => Object.assign(window.__pad, p), patch);
   const status = id => page.evaluate(id => document.querySelector('#test-' + id + ' .badge').textContent + ' | ' + document.querySelector('#test-' + id + ' .detail').textContent, id);
   const launch = id => page.click('#test-' + id + ' button.primary');
   await page.click('.tab[data-tab=val]');
 
+  await page.waitForFunction(() => /Sony d'origine|Suspecte/.test(document.getElementById('factoryBody').textContent), null, { timeout: 15000 });
+  await page.waitForFunction(() => /utilisation/.test(document.getElementById('telemetryBox').textContent), null, { timeout: 15000 });
+  console.log('factory:', (await page.textContent('#factoryBody')).replace(/\s+/g, ' ').slice(0, 400));
+  console.log('telemetry:', (await page.textContent('#telemetryBox')).replace(/\s+/g, ' ').slice(0, 400));
+  console.log('fwextra:', await page.textContent('#i-fwextra'));
+
   // 1 conn, 2 battery
   await launch('conn'); await page.waitForTimeout(1500); console.log('conn:', await status('conn'));
+  await launch('auth'); await page.waitForTimeout(800); console.log('auth:', await status('auth'));
   await set({ status: 0x17 });
   await launch('battery'); await page.waitForTimeout(800); console.log('battery:', await status('battery'));
 
@@ -93,6 +142,15 @@ const MOCK = `
   }
   await set({ lx: 128, ly: 127, rx: 129, ry: 128 });
   console.log('sticks:', await status('sticks'));
+
+  // snapback : 5 lâchers par stick
+  await launch('snapback');
+  for (let k = 0; k < 5; k++) {
+    await set({ lx: 255, ly: 128, rx: 0, ry: 128 }); await page.waitForTimeout(60);
+    await set({ lx: 120, ly: 128, rx: 134, ry: 128 }); await page.waitForTimeout(30);   // léger rebond
+    await set({ lx: 128, ly: 127, rx: 129, ry: 128 }); await page.waitForTimeout(700);
+  }
+  console.log('snapback:', await status('snapback'));
 
   // 6 triggers
   await launch('triggers');

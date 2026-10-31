@@ -3,17 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Testeur DualSense</title>
-<meta name="description" content="Test complet et validation de manette PS5 DualSense / DualSense Edge dans le navigateur (WebHID).">
+<title>ZherPad</title>
+<meta name="description" content="ZherPad — diagnostic complet, infos usine, historique d'usage et validation de manette PS5 DualSense / DualSense Edge dans le navigateur (WebHID).">
+<meta name="theme-color" content="#2f6bff">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
   <div class="brand">
-    <span class="logo">🎮</span>
+    <img class="logo" src="icon.svg" alt="" width="40" height="40">
     <div>
-      <h1>Testeur DualSense</h1>
-      <p class="sub">Test et validation complète de manette PS5 — USB ou Bluetooth</p>
+      <h1>ZherPad</h1>
+      <p class="sub">Diagnostic et validation complète de manette PS5 DualSense — USB ou Bluetooth</p>
     </div>
   </div>
   <div class="conn">
@@ -30,6 +33,8 @@
   1. Branchez la manette en <b>USB</b> (recommandé) ou appairez-la en Bluetooth. 2. Cliquez sur <b>Connecter la manette</b> et choisissez
   « DualSense Wireless Controller ». 3. Suivez l'onglet <b>Validation</b>.
 </div>
+<div id="seenBefore" class="banner info" hidden></div>
+<div id="cloneWarn" class="banner bad" hidden></div>
 <div id="bthint" class="banner warn" hidden>
   Connexion <b>Bluetooth</b> détectée : tout fonctionne sauf les tests audio (haut-parleur / micro), qui exigent l'USB.
 </div>
@@ -59,6 +64,7 @@
         <tr><th>Version matérielle</th><td id="i-hw">—</td></tr>
         <tr><th>Date de compilation FW</th><td id="i-build">—</td></tr>
         <tr><th>Type FW / série SW</th><td id="i-fwtype">—</td></tr>
+        <tr><th>Autres firmwares</th><td id="i-fwextra" class="mono small">—</td></tr>
       </tbody></table>
     </div>
     <div class="card">
@@ -73,6 +79,16 @@
       </tbody></table>
       <h3>Calibration usine (IMU)</h3>
       <table class="kv small"><tbody id="calibBody"><tr><td>—</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Infos usine <span class="small">(lecture seule)</span></h2>
+      <table class="kv"><tbody id="factoryBody"><tr><td class="small">Connectez une manette…</td></tr></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Historique d'usage <span class="small">(compteurs enregistrés dans la manette)</span></h2>
+      <div id="telemetryBox" class="small">Connectez une manette…</div>
     </div>
   </div>
 </section>
@@ -220,8 +236,8 @@
 <section id="printReport" class="print-only"></section>
 
 <footer class="foot small">
-  Outil libre — aucune donnée n'est envoyée sur internet. Lecture seule : aucune écriture firmware ni calibration.
-  <a href="https://github.com/anzher44/dualsense-testerPS5">Code source</a>
+  ZherPad — outil libre, aucune donnée n'est envoyée sur internet. Lecture seule : aucune écriture firmware ni calibration.
+  <a href="https://github.com/anzher44/zherpad">Code source</a>
 </footer>
 
 <script src="dualsense.js"></script>

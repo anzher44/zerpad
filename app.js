@@ -1,7 +1,7 @@
-/* app.js — interface, visualisation et tests de validation. */
+/* app.js — ZherPad : interface, visualisation et tests de validation. */
 (function () {
   'use strict';
-  const VERSION = '1.1.0';
+  const VERSION = '2.0.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -57,7 +57,17 @@
     renderFeatures();
     buildButtonGrid();
     buildTests();
+    loadExtras();
   });
+  let extrasPromise = null;
+  function loadExtras() {
+    $('factoryBody').innerHTML = '<tr><td class="small">Lecture des infos usine…</td></tr>';
+    $('telemetryBox').textContent = 'Lecture des compteurs…';
+    extrasPromise = Promise.all([ds.readFactoryInfo(), ds.readTelemetry()]).catch(e => log('Infos usine : ' + e.message));
+    return extrasPromise;
+  }
+  ds.addEventListener('factory', () => { renderFactory(); checkSeenBefore(); });
+  ds.addEventListener('telemetry', renderTelemetry);
   ds.addEventListener('transport', () => { renderInfo(); });
   ds.addEventListener('info', () => { renderInfo(); renderFeatures(); });
   ds.addEventListener('closed', () => {
@@ -66,6 +76,8 @@
     $('btnConnect').hidden = false;
     $('btnDisconnect').hidden = true;
     $('bthint').hidden = true;
+    $('seenBefore').hidden = true;
+    $('cloneWarn').hidden = true;
   });
 
   function log(msg) {
@@ -88,6 +100,9 @@
     $('i-hw').textContent = i.hwVersion != null ? '0x' + hex(i.hwVersion, 8) : '—';
     $('i-build').textContent = i.buildDate ? i.buildDate + ' ' + (i.buildTime || '') : '—';
     $('i-fwtype').textContent = i.fwType != null ? '0x' + hex(i.fwType, 4) + ' / 0x' + hex(i.swSeries, 4) : '—';
+    $('i-fwextra').textContent = i.sblVersion != null
+      ? 'SBL ' + fwString(i.sblVersion).split(' ')[0] + ' · DSP 0x' + hex(i.dspVersion, 8) + ' · MCU-DSP ' + fwString(i.spiderVersion).split(' ')[0] + (i.deviceInfo && /[^0]/.test(i.deviceInfo) ? ' · device 0x' + i.deviceInfo : '')
+      : '—';
     const c = ds.calib;
     const body = $('calibBody');
     if (!c) { body.innerHTML = '<tr><td>—</td></tr>'; return; }
@@ -110,6 +125,98 @@
     $('rawFeature').textContent = Object.keys(ds.features).map(id =>
       '# 0x' + hex(+id) + ' ' + (names[id] || '') + ' (' + ds.features[id].length + ' octets)\n' + hexDump(ds.features[id])
     ).join('\n\n') || '—';
+  }
+
+  // ================= Infos usine & télémétrie =================
+  function fmtDuration(sec) {
+    if (sec == null) return '—';
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+    return h ? h + ' h ' + String(m).padStart(2, '0') + ' min' : m + ' min ' + (sec % 60) + ' s';
+  }
+  const num = n => n == null ? '—' : Number(n).toLocaleString('fr-FR');
+
+  function renderFactory() {
+    const f = ds.factory || {}, i = ds.info;
+    const rows = [
+      ['Authenticité', f.cloneReasons && f.cloneReasons.length
+        ? '<b class="txt-bad">⚠ Suspecte : ' + esc(f.cloneReasons.join(', ')) + '</b>'
+        : '<b class="txt-ok">✔ Manette Sony d\'origine (aucun signe de copie)</b>'],
+      ['Numéro de série', f.serial],
+      ['Couleur / édition', f.color ? f.color + ' (code ' + f.colorCode + ')' : f.colorCode ? 'Inconnue (code ' + f.colorCode + ')' : null],
+      ['Carte mère', i.boardModel],
+      ['PCBA ID', f.pcbaId],
+      ['ID unique MCU', f.mcuUniqueId],
+      ['Adresse Bluetooth', f.btAddress],
+      ['Tension batterie', f.batteryVoltage ? (f.batteryVoltage / 1000).toFixed(2) + ' V' : null],
+      ['Code-barres batterie', f.batteryBarcode],
+      ['Code-barres VCM gauche', f.vcmLeft],
+      ['Code-barres VCM droit', f.vcmRight],
+      ['Pièces assemblées', f.assembleParts ? '0x' + f.assembleParts : null],
+      ['Moteur gâchette L2', f.triggerMotorL ? f.triggerMotorL.info + ' · n° ' + f.triggerMotorL.serial : null],
+      ['Moteur gâchette R2', f.triggerMotorR ? f.triggerMotorR.info + ' · n° ' + f.triggerMotorR.serial : null],
+      ['Pavé tactile (ID / FW)', f.touchpadId ? f.touchpadId + ' / ' + (f.touchpadFw || '—') : null],
+      ['Mémoire de calibration', f.nvsLocked === true ? 'Verrouillée (normal)' : f.nvsLocked === false ? '⚠ Déverrouillée (calibration modifiée ou en cours)' : null],
+    ];
+    $('factoryBody').innerHTML = rows.filter(r => r[1]).map(r =>
+      '<tr><th>' + r[0] + '</th>' + (r[0] === 'Authenticité' ? '<td>' + r[1] : '<td class="mono">' + esc(r[1])) + '</td></tr>').join('') ||
+      '<tr><td class="small">Aucune info usine disponible (firmware ancien ou manette non compatible).</td></tr>';
+    const cw = $('cloneWarn');
+    cw.hidden = !(f.cloneReasons && f.cloneReasons.length);
+    cw.textContent = '⚠ Attention : cette manette présente des signes de copie / contrefaçon — ' + (f.cloneReasons || []).join(', ') + '.';
+  }
+
+  const TEL_BTN = { up: '↑', down: '↓', left: '←', right: '→', triangle: '△', circle: '○', cross: '✕', square: '□',
+    l1: 'L1', l2: 'L2', l3: 'L3', r1: 'R1', r2: 'R2', r3: 'R3', options: 'Options', create: 'Create', ps: 'PS',
+    mute: 'Micro', touch: 'Pavé (contacts)', touchpad: 'Pavé (clics)', paddleL: 'Palette G', paddleR: 'Palette D' };
+  function usageLevel(sec) {
+    if (sec == null) return null;
+    const h = sec / 3600;
+    return h < 50 ? 'Faible (comme neuve)' : h < 300 ? 'Modéré' : h < 1000 ? 'Important' : 'Très important';
+  }
+  function renderTelemetry() {
+    const t = ds.telemetry, box = $('telemetryBox');
+    if (!t) { box.textContent = 'Compteurs non disponibles (firmware trop ancien ou commande non prise en charge).'; return; }
+    if (t.partial) { box.innerHTML = '<table class="kv"><tbody><tr><th>Temps d\'utilisation</th><td>' + fmtDuration(t.totalActiveTime) + '</td></tr></tbody></table><p class="small">Firmware ancien : seul le temps d\'utilisation est lisible.</p>'; return; }
+    const f = ds.factory || {};
+    const errs = t.chargeVoltageErrors + t.chargeTemperatureErrors + t.chargePmicErrors;
+    const rows = [
+      ['Temps d\'utilisation total', fmtDuration(t.totalActiveTime)],
+      ['Niveau d\'usage (indicatif)', usageLevel(t.totalActiveTime)],
+      ['Temps de charge total', fmtDuration(t.totalChargeTime)],
+      ['Charges (branchements)', num(t.batteryChargeCount) + ' · complètes : ' + num(t.fullChargeCount)],
+      ['Vibrations actives', fmtDuration(t.hapticActiveTime)],
+      ['Gâchettes adaptatives actives', 'G ' + fmtDuration(t.triggerLeftActiveTime) + ' · D ' + fmtDuration(t.triggerRightActiveTime)],
+      ['Connexions USB / Bluetooth', num(t.usbConnectCount) + ' / ' + num(t.btConnectCount) + (t.btTimeoutCount ? ' (pertes BT : ' + num(t.btTimeoutCount) + ')' : '')],
+      ['Authentifications console', num(t.authSuccessCount) + ' réussies · ' + num(t.authFailCount) + ' échouées'],
+      ['Casque / écouteurs branchés', num(t.headsetDetectCount + t.headphoneDetectCount) + ' fois'],
+      ['Erreurs de charge', errs ? '⚠ ' + errs + ' (tension ' + t.chargeVoltageErrors + ', temp. ' + t.chargeTemperatureErrors + ', PMIC ' + t.chargePmicErrors + ')' : '0'],
+      ['Erreurs démarrage sous-CPU', t.subcpuStartupErrors ? '⚠ ' + num(t.subcpuStartupErrors) : '0'],
+    ];
+    if (t.sticks && t.sticks.lx != null) {
+      rows.push(['Allers-retours stick gauche', num(t.sticks.lx + t.sticks.ly)]);
+      rows.push(['Allers-retours stick droit', num(t.sticks.rx + t.sticks.ry)]);
+    }
+    if (t.stickModuleL) rows.push(['Module stick G / D', (t.stickModuleL.serial || '—') + ' / ' + (t.stickModuleR.serial || '—')]);
+    if (t.serial && f.serial && t.serial.trim() !== f.serial.trim()) rows.push(['⚠ Incohérence', 'N° de série des compteurs (' + t.serial + ') ≠ n° de série usine : carte échangée ?']);
+    const btns = Object.entries(t.buttons || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    box.innerHTML = '<table class="kv"><tbody>' + rows.map(r => '<tr><th>' + r[0] + '</th><td>' + esc(r[1]) + '</td></tr>').join('') + '</tbody></table>' +
+      (btns.length ? '<h3>Appuis enregistrés par bouton</h3><div class="presses">' + btns.map(([k, v]) =>
+        '<span><b>' + esc(TEL_BTN[k] || k) + '</b> ' + num(v) + '</span>').join('') + '</div>' : '') +
+      '<p class="small">Compteurs écrits par la manette elle-même (usine → aujourd\'hui). Utile pour vérifier une manette d\'occasion.</p>';
+  }
+
+  function historyLoad() {
+    try {
+      const h = JSON.parse(localStorage.getItem('zherpad.history') || localStorage.getItem('dsTester.history') || '[]');
+      return Array.isArray(h) ? h : [];
+    } catch (e) { return []; }
+  }
+  function checkSeenBefore() {
+    const f = ds.factory || {};
+    const prev = historyLoad().find(x => (f.serial && x.serial === f.serial) || (!f.serial && ds.info.mac && x.mac === ds.info.mac));
+    const el = $('seenBefore');
+    el.hidden = !prev;
+    if (prev) el.textContent = 'Cette manette a déjà été testée ici le ' + new Date(prev.date).toLocaleString() + ' — verdict : ' + prev.verdict + (prev.unit ? ' (' + prev.unit + ')' : '') + '.';
   }
 
   // ================= Boutons =================
@@ -435,6 +542,27 @@
         },
       }),
       T({
+        id: 'auth', title: 'Authenticité & infos usine',
+        instructions: 'Lit le numéro de série, la couleur, la carte mère et vérifie les signes de contrefaçon (firmware daté du futur, absence de réponse aux commandes Sony). Plus fiable en USB.',
+        kind: 'auto',
+        async start(t) {
+          t.status = 'running'; t.detail = 'Lecture des infos usine…'; renderTests();
+          // L'essentiel (n° de série, authenticité) arrive en premier, inutile d'attendre le reste
+          for (let k = 0; k < 100 && !ds.factory && extrasPromise; k++) await sleep(100);
+          if (!ds.factory) await ds.readFactoryInfo();
+          const f = ds.factory || {};
+          t.data = { serial: f.serial || null, color: f.color || null, board: ds.info.boardModel || null, cloneReasons: f.cloneReasons || [], finetune: f.finetuneAnswered };
+          const parts = [];
+          parts.push(f.serial ? '✔ n° ' + f.serial : (ds.transport === 'usb' ? '✘ n° de série illisible' : '… n° de série (essayez en USB)'));
+          if (f.color) parts.push(f.color);
+          if (ds.info.boardModel) parts.push(ds.info.boardModel);
+          parts.push(f.finetuneAnswered ? '✔ répond aux commandes Sony' : '… pas de réponse aux commandes Sony');
+          if (f.cloneReasons && f.cloneReasons.length) parts.push('⚠ ' + f.cloneReasons.join(', '));
+          t.detail = parts.join(' · ');
+          finish(t, !(f.cloneReasons && f.cloneReasons.length));
+        },
+      }),
+      T({
         id: 'battery', title: 'Batterie & charge',
         instructions: 'Lit l\'état de la batterie. En USB, la manette doit indiquer « En charge » ou « Chargée ». Échoue en cas d\'erreur de charge/température.',
         kind: 'auto',
@@ -469,7 +597,7 @@
       }),
       T({
         id: 'drift', title: 'Sticks au repos (dérive / drift)',
-        instructions: 'Lâchez complètement les deux sticks, posez la manette, puis cliquez « Lancer ». Mesure pendant 3 s. Tolérance : écart ≤ 10 %.',
+        instructions: 'Lâchez complètement les deux sticks, posez la manette, puis cliquez « Lancer ». Mesure pendant 3 s : décalage, bruit (jitter) et zone morte conseillée. Tolérance : écart ≤ 10 %, bruit ≤ 2,5.',
         kind: 'auto',
         start(t) {
           t.status = 'running'; t.data = { s: [], t0: performance.now() }; t.detail = 'Ne touchez pas les sticks…'; renderTests();
@@ -481,15 +609,24 @@
           const res = {};
           [['L', 0], ['R', 2]].forEach(([n, i]) => {
             let mx = 0, sx = 0, sy = 0;
-            for (const s of d.s) { const x = norm(s[i]), y = norm(s[i + 1]); mx = Math.max(mx, Math.hypot(x, y)); sx += x; sy += y; }
-            const k = d.s.length || 1;
-            res[n] = { maxDev: +(mx * 100).toFixed(1), meanX: +(sx / k * 100).toFixed(1), meanY: +(sy / k * 100).toFixed(1) };
+            for (const s of d.s) { const x = norm(s[i]), y = norm(s[i + 1]); mx = Math.max(mx, Math.hypot(x, y)); sx += s[i]; sy += s[i + 1]; }
+            const k = d.s.length || 1, ax = sx / k, ay = sy / k;
+            let vx = 0, vy = 0;
+            for (const s of d.s) { vx += (s[i] - ax) ** 2; vy += (s[i + 1] - ay) ** 2; }
+            const jitter = Math.max(Math.sqrt(vx / k), Math.sqrt(vy / k));
+            const offset = Math.hypot(ax - 127.5, ay - 127.5);
+            res[n] = {
+              maxDev: +(mx * 100).toFixed(1), rawMean: [+ax.toFixed(1), +ay.toFixed(1)],
+              offset: +offset.toFixed(1), jitter: +jitter.toFixed(2),
+              deadzone: Math.ceil((offset + 3.5 * jitter + 1) / 127.5 * 100),
+            };
           });
           this.data = { left: res.L, right: res.R, samples: d.s.length };
-          const okL = res.L.maxDev <= 10, okR = res.R.maxDev <= 10;
+          const ok = r => r.maxDev <= 10 && r.jitter <= 2.5;
           const q = v => v <= 5 ? 'excellent' : v <= 10 ? 'bon' : v <= 15 ? 'dérive légère' : 'DÉRIVE';
-          this.detail = 'Gauche : ' + res.L.maxDev + ' % (' + q(res.L.maxDev) + ') · Droit : ' + res.R.maxDev + ' % (' + q(res.R.maxDev) + ')';
-          finish(this, okL && okR && d.s.length > 20);
+          const f = (name, r) => name + ' : ' + r.maxDev + ' % (' + q(r.maxDev) + '), bruit ' + r.jitter + ', zone morte conseillée ' + r.deadzone + ' %';
+          this.detail = f('Gauche', res.L) + ' · ' + f('Droit', res.R);
+          finish(this, ok(res.L) && ok(res.R) && d.s.length > 20);
         },
       }),
       T({
@@ -513,6 +650,54 @@
           const txt = f('Gauche', r.L) + ' | ' + f('Droit', r.R);
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
           if (allOk) finish(this, true);
+        },
+      }),
+      T({
+        id: 'snapback', title: 'Sticks — retour au centre (ressorts)',
+        instructions: 'Poussez un stick à fond puis LÂCHEZ-LE d\'un coup (sans l\'accompagner). Répétez 5 fois par stick, dans différentes directions. Exige : retour au centre ≤ 10 % et rebond médian < 18 %.',
+        kind: 'auto',
+        start(t) {
+          t.status = 'running';
+          t.data = { L: { phase: 'idle', rel: [] }, R: { phase: 'idle', rel: [] } };
+          renderTests();
+        },
+        onState(st) {
+          const d = this.data;
+          for (const [n, xr, yr] of [['L', st.lx, st.ly], ['R', st.rx, st.ry]]) {
+            const s = d[n], x = norm(xr), y = norm(yr), r = Math.hypot(x, y);
+            if (r > 0.7 && s.phase !== 'out') { s.phase = 'out'; }
+            if (s.phase === 'out') {
+              if (r > 0.7) { s.dir = [x / r, y / r]; }
+              else if (r < 0.25) { s.phase = 'ret'; s.t0 = st.time; s.over = 0; s.rest = []; }
+            } else if (s.phase === 'ret') {
+              const el = st.time - s.t0;
+              if (x * s.dir[0] + y * s.dir[1] < 0) s.over = Math.max(s.over, r);
+              if (el >= 300) s.rest.push(r);
+              if (el >= 600) {
+                const rest = s.rest.reduce((a, b) => a + b, 0) / (s.rest.length || 1);
+                s.rel.push({ over: s.over, rest });
+                s.phase = 'idle';
+              }
+            }
+          }
+          const sum = n => {
+            const rel = d[n].rel;
+            if (!rel.length) return null;
+            const ov = rel.map(v => v.over).sort((a, b) => a - b);
+            return { count: rel.length, overMedian: +(ov[Math.floor(ov.length / 2)] * 100).toFixed(1), restMax: +(Math.max(...rel.map(v => v.rest)) * 100).toFixed(1) };
+          };
+          const a = sum('L'), b = sum('R');
+          const ok = v => v && v.count >= 5 && v.restMax <= 10 && v.overMedian < 18;
+          const txt = ['Gauche', 'Droit'].map((nm, i) => {
+            const v = i ? b : a;
+            return nm + ' : ' + (v ? v.count + '/5 lâchers · retour ' + v.restMax + ' % · rebond ' + v.overMedian + ' %' : '0/5 lâchers');
+          }).join(' | ');
+          this.data.result = { left: a, right: b };
+          if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
+          if (a && b && a.count >= 5 && b.count >= 5) {
+            this.data = { left: a, right: b };
+            finish(this, ok(a) && ok(b));
+          }
         },
       }),
       T({
@@ -747,7 +932,7 @@
     const v = computeVerdict();
     const i = ds.info;
     return {
-      tool: 'Testeur DualSense', toolVersion: VERSION,
+      tool: 'ZherPad', toolVersion: VERSION,
       date: new Date().toISOString(),
       unit: $('unitLabel').value, notes: $('unitNotes').value,
       verdict: v.label, verdictDetail: v.detail,
@@ -762,23 +947,25 @@
         battery: ds.state && ds.state.battery ? { percent: ds.state.battery.pct, state: ds.state.battery.label } : null,
         reportRate: ds.reportRate,
         imuCalibrationValid: ds.calib ? ds.calib.valid : null,
+        boardModel: i.boardModel || null,
       },
+      factory: ds.factory || null,
+      usage: ds.telemetry || null,
       tests: tests.map(t => ({ id: t.id, title: t.title, required: t.required, status: t.status, detail: t.detail, data: t.data, at: t.finishedAt || null })),
     };
   }
   function saveHistory(r) {
     try {
-      const h = JSON.parse(localStorage.getItem('dsTester.history') || '[]');
-      h.unshift({ date: r.date, unit: r.unit, mac: r.device.mac, verdict: r.verdict, model: r.device.model });
-      localStorage.setItem('dsTester.history', JSON.stringify(h.slice(0, 50)));
+      const h = historyLoad();
+      h.unshift({ date: r.date, unit: r.unit, mac: r.device.mac, serial: r.factory && r.factory.serial || null, verdict: r.verdict, model: r.device.model });
+      localStorage.setItem('zherpad.history', JSON.stringify(h.slice(0, 100)));
     } catch (e) { /* stockage indisponible */ }
     renderHistory();
   }
   function renderHistory() {
-    let h = [];
-    try { h = JSON.parse(localStorage.getItem('dsTester.history') || '[]'); } catch (e) { /* ignore */ }
+    const h = historyLoad();
     $('history').innerHTML = h.length ? '<table class="kv"><tbody>' + h.map(x =>
-      '<tr><td>' + new Date(x.date).toLocaleString() + '</td><td>' + esc(x.model || '') + '</td><td class="mono">' + esc(x.mac || '') + '</td><td>' + esc(x.unit || '') + '</td><td><b>' + esc(x.verdict) + '</b></td></tr>'
+      '<tr><td>' + new Date(x.date).toLocaleString() + '</td><td>' + esc(x.model || '') + '</td><td class="mono">' + esc(x.serial || x.mac || '') + '</td><td>' + esc(x.unit || '') + '</td><td><b>' + esc(x.verdict) + '</b></td></tr>'
     ).join('') + '</tbody></table>' : 'Aucun rapport enregistré.';
   }
   renderHistory();
@@ -788,7 +975,7 @@
     const blob = new Blob([JSON.stringify(r, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'rapport-dualsense-' + (r.device.mac || 'inconnue').replace(/:/g, '') + '-' + r.date.slice(0, 19).replace(/[:T]/g, '-') + '.json';
+    a.download = 'zherpad-' + ((r.factory && r.factory.serial) || r.device.mac || 'manette').replace(/[^A-Za-z0-9]/g, '') + '-' + r.date.slice(0, 19).replace(/[:T]/g, '-') + '.json';
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
@@ -799,17 +986,34 @@
       ['Adresse MAC', d.mac], ['Firmware', d.firmware], ['Version MAJ', d.updateVersion], ['Matériel', d.hardware], ['Compilation FW', d.firmwareBuild],
       ['Batterie', d.battery ? (d.battery.percent != null ? d.battery.percent + ' % — ' : '') + d.battery.state : null],
       ['Fréquence', d.reportRate ? d.reportRate + ' rapports/s' : null]];
+    const f = r.factory || {};
+    if (f.serial) rows.splice(1, 0, ['N° de série', f.serial]);
+    if (f.color) rows.splice(2, 0, ['Couleur', f.color]);
+    if (d.boardModel) rows.push(['Carte mère', d.boardModel]);
+    if (f.cloneReasons) rows.push(['Authenticité', f.cloneReasons.length ? 'SUSPECTE : ' + f.cloneReasons.join(', ') : 'Sony d\'origine']);
+    const u = r.usage;
+    const usageRows = u && !u.partial ? [['Temps d\'utilisation', fmtDuration(u.totalActiveTime) + ' — ' + usageLevel(u.totalActiveTime)],
+      ['Temps de charge', fmtDuration(u.totalChargeTime)], ['Charges', num(u.batteryChargeCount)],
+      ['Connexions USB / BT', num(u.usbConnectCount) + ' / ' + num(u.btConnectCount)],
+      ['Erreurs de charge', String(u.chargeVoltageErrors + u.chargeTemperatureErrors + u.chargePmicErrors)]]
+      : u ? [['Temps d\'utilisation', fmtDuration(u.totalActiveTime)]] : [];
     $('printReport').innerHTML =
-      '<h1>Rapport de test — Manette ' + esc(d.model || 'DualSense') + '</h1>' +
+      '<h1>ZherPad — Rapport de test manette ' + esc(d.model || 'DualSense') + '</h1>' +
       '<p>' + new Date(r.date).toLocaleString() + (r.unit ? ' · <b>' + esc(r.unit) + '</b>' : '') + '</p>' +
       '<div class="pverdict ' + computeVerdict().key + '">' + esc(r.verdict) + '</div><p>' + esc(r.verdictDetail) + '</p>' +
       (r.notes ? '<p><b>Notes :</b> ' + esc(r.notes) + '</p>' : '') +
       '<h2>Identité</h2><table>' + rows.map(x => '<tr><th>' + x[0] + '</th><td>' + esc(x[1] == null ? '—' : x[1]) + '</td></tr>').join('') + '</table>' +
+      (usageRows.length ? '<h2>Historique d\'usage (enregistré par la manette)</h2><table>' + usageRows.map(x => '<tr><th>' + x[0] + '</th><td>' + esc(x[1]) + '</td></tr>').join('') + '</table>' : '') +
       '<h2>Résultats</h2><table><tr><th>Test</th><th>Résultat</th><th>Détail</th></tr>' +
       r.tests.map(t => '<tr><td>' + esc(t.title) + (t.required ? '' : ' (opt.)') + '</td><td class="st ' + t.status + '">' + STATUS_TXT[t.status] + '</td><td>' + esc(t.detail) + '</td></tr>').join('') +
-      '</table><p class="small">Généré par Testeur DualSense v' + VERSION + ' (WebHID).</p>';
+      '</table><p class="small">Généré par ZherPad v' + VERSION + ' (WebHID) — https://github.com/anzher44/zherpad</p>';
     window.print();
   });
 
   renderTests();
+
+  // Fonctionnement hors ligne / installation comme application
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* facultatif */ });
+  }
 })();

@@ -100,6 +100,9 @@
       this._onInput = this._onInput.bind(this);
       this._sendQueued = false;
       this._sending = Promise.resolve();
+      this._testLock = Promise.resolve();
+      this.factory = null;
+      this.telemetry = null;
     }
 
     static get supported() { return typeof navigator !== 'undefined' && 'hid' in navigator; }
@@ -182,10 +185,152 @@
         this.info.hwVersion = dv.getUint32(24, true);
         this.info.fwVersion = dv.getUint32(28, true);
         this.info.updateVersion = b.length >= 46 ? dv.getUint16(44, true) : null;
+        this.info.deviceInfo = Array.from(b.slice(32, 44)).map(x => hex(x)).join('');
+        if (b.length >= 60) {
+          this.info.sblVersion = dv.getUint32(48, true);
+          this.info.dspVersion = dv.getUint32(52, true);
+          this.info.spiderVersion = dv.getUint32(56, true);
+        }
+        this.info.boardModel = boardModel(this.info.hwVersion, this.model);
         this.log('Firmware : 0x' + hex(this.info.fwVersion, 8) + ', mise à jour 0x' + hex(this.info.updateVersion || 0, 4));
       } catch (e) { this.log('Infos firmware illisibles : ' + e.message); }
 
       this.dispatchEvent(new Event('info'));
+    }
+
+    // ---------- Commandes « test » usine (0x80 → 0x81), lecture seule ----------
+    // Seules des commandes de LECTURE (READ_* / GET_*) sont envoyées ici.
+    _featureLen(id) {
+      for (const c of this.device.collections || []) {
+        for (const r of c.featureReports || []) {
+          if (r.reportId === id && r.items && r.items[0] && r.items[0].reportCount) return r.items[0].reportCount;
+        }
+      }
+      return 63;
+    }
+
+    async _sendFeature(id, bytes) {
+      const d = new Uint8Array(this._featureLen(id));
+      d.set(bytes.slice(0, d.length));
+      if (this.transport === 'bt') {
+        const forCrc = new Uint8Array(2 + d.length - 4);
+        forCrc[0] = 0x53; forCrc[1] = id; forCrc.set(d.subarray(0, d.length - 4), 2);
+        const crc = crc32(forCrc);
+        d[d.length - 4] = crc & 0xff; d[d.length - 3] = (crc >>> 8) & 0xff; d[d.length - 2] = (crc >>> 16) & 0xff; d[d.length - 1] = (crc >>> 24) & 0xff;
+      }
+      await this.device.sendFeatureReport(id, d);
+    }
+
+    /**
+     * Envoie une commande test (périphérique, action, paramètres) et lit la réponse paginée.
+     * Renvoie un Uint8Array (pages de 56 octets concaténées) ou null si pas de réponse.
+     */
+    testCommand(devId, actId, params = [], maxPages = 1) {
+      const run = async () => {
+        await this._sendFeature(0x80, [devId, actId, ...params]);
+        const pages = [];
+        const t0 = performance.now();
+        while (pages.length < maxPages && performance.now() - t0 < 800) {
+          let r = await this._getFeature(0x81);
+          const match = r[1] === devId && r[2] === actId;
+          if (match && (r[3] === 2 || r[3] === 3)) {
+            pages.push(r.slice(4, 60));
+            if (r[3] === 2) break;
+          } else if (!match && pages.length) {
+            break;
+          }
+          await new Promise(res => setTimeout(res, 8));
+        }
+        delete this.features[0x81];
+        if (!pages.length) return null;
+        const out = new Uint8Array(pages.length * 56);
+        pages.forEach((p, i) => out.set(p, i * 56));
+        return out;
+      };
+      const p = this._testLock.then(run, run);
+      this._testLock = p.catch(() => null);
+      return p.catch(e => { this.log('Commande test ' + devId + '/' + actId + ' : ' + e.message); return null; });
+    }
+
+    /** Lit les informations usine (numéro de série, couleur, codes-barres…). */
+    async readFactoryInfo() {
+      const f = {};
+      const asciiOf = (u8, len) => {
+        let s = '';
+        for (let i = 0; i < Math.min(len, u8.length); i++) {
+          const c = u8[i]; if (c === 0) break;
+          if (c < 0x20 || c > 0x7e) return s || null;
+          s += String.fromCharCode(c);
+        }
+        return s.trim() || null;
+      };
+      const hexOf = u8 => Array.from(u8).map(x => hex(x)).join('');
+      let r;
+      if ((r = await this.testCommand(1, 19))) {
+        f.serial = asciiOf(r, 32);
+        if (f.serial) { f.colorCode = f.serial.slice(4, 6); f.color = COLORS[f.colorCode] || null; }
+      }
+      if ((r = await this.testCommand(9, 2))) {
+        const m = []; for (let i = 5; i >= 0; i--) m.push(hex(r[i]));
+        f.btAddress = m.join(':');
+      }
+      if ((r = await this.testCommand(4, 3))) { const mv = r[0] | (r[1] << 8); if (mv > 2000 && mv < 5000) f.batteryVoltage = mv; }
+      // État de la mémoire de calibration (NVS) : verrouillée = normal
+      if ((r = await this.testCommand(3, 3))) f.nvsLocked = r[0] === 1 ? true : r[0] === 0 ? false : null;
+      // Requête de réglage fin des sticks : toute vraie DualSense y répond
+      r = await this.testCommand(12, 2);
+      f.finetuneAnswered = !!r;
+      // Authenticité
+      const year = parseInt(String(this.info.buildDate || '').trim().slice(-4), 10);
+      const reasons = [];
+      if (year && year > new Date().getFullYear()) reasons.push('firmware daté du futur (' + year + ')');
+      if (!f.finetuneAnswered && this.transport === 'usb') reasons.push('ne répond pas à la requête de calibration des sticks');
+      if (this.info.fwVersion == null) reasons.push('informations firmware illisibles');
+      f.cloneReasons = reasons;
+      // Affiche l'essentiel tout de suite, puis complète avec le reste
+      this.factory = f;
+      this.dispatchEvent(new Event('factory'));
+      if ((r = await this.testCommand(1, 17))) { const s = asciiOf(r, 24); f.pcbaId = s ? s.split('').reverse().join('').trim() : null; }
+      if (!f.pcbaId && (r = await this.testCommand(1, 4))) {
+        let v = 0n; for (let i = 5; i >= 0; i--) v = (v << 8n) | BigInt(r[i]);
+        if (v) f.pcbaId = '0x' + v.toString(16).toUpperCase().padStart(12, '0');
+      }
+      if ((r = await this.testCommand(1, 9)) && r[0] === 0) {
+        f.mcuUniqueId = hexOf(r.slice(1, 9).reverse());
+      }
+      if ((r = await this.testCommand(1, 24))) f.batteryBarcode = asciiOf(r, 32);
+      if ((r = await this.testCommand(1, 26))) f.vcmLeft = asciiOf(r, 32);
+      if ((r = await this.testCommand(1, 28))) f.vcmRight = asciiOf(r, 32);
+      if ((r = await this.testCommand(1, 21))) { const h = hexOf(r.slice(0, 32)); if (/[^0F]/.test(h)) f.assembleParts = h.replace(/(00)+$/, ''); }
+      if (this.transport === 'usb') {
+        if ((r = await this.testCommand(5, 2))) f.touchpadId = hexOf(r.slice(0, 8));
+        if ((r = await this.testCommand(5, 4))) f.touchpadFw = hexOf(r.slice(0, 8));
+      }
+      // Moteurs des gâchettes adaptatives (modèles récents)
+      if (((this.info.hwVersion || 0) & 0xffff) >= 777) {
+        for (const [side, p] of [['L', 1], ['R', 2]]) {
+          r = await this.testCommand(7, 37, [p]);
+          if (r && r[0] === 0) {
+            f['triggerMotor' + side] = { serial: hexOf(r.slice(12, 19)), info: asciiOf(r.slice(19, 27), 8) };
+          }
+        }
+      }
+      this.dispatchEvent(new Event('factory'));
+      return f;
+    }
+
+    /** Lit les compteurs d'usage enregistrés dans la manette (télémétrie 0x70). */
+    async readTelemetry() {
+      const isEdge = this.model === 'DualSense Edge';
+      const block = await this.testCommand(0x70, 1, [], isEdge ? 6 : 4);
+      if (!block) { this.telemetry = null; this.dispatchEvent(new Event('telemetry')); return null; }
+      const d = new DataView(block.buffer, 1);
+      const upd = this.info.updateVersion || 0;
+      const full = upd > (isEdge ? 374 : 1106);
+      this.telemetry = full ? parseTelemetry(d, isEdge) : { totalActiveTime: tLow(d, 21), partial: true };
+      this.telemetryRaw = block;
+      this.dispatchEvent(new Event('telemetry'));
+      return this.telemetry;
     }
 
     // Vibration "v2" à partir de la mise à jour 2.21 (comme le pilote Linux)
@@ -402,11 +547,97 @@
     return raw.map(v => v / 8192);     // repli : ±4 g
   }
 
+  // Couleur d'après les caractères 5-6 du numéro de série (sources : dualshock-tools, daidr/dualsense-tester)
+  const COLORS = {
+    '00': 'Blanc (White)', '01': 'Noir (Midnight Black)', '02': 'Rouge (Cosmic Red)', '03': 'Rose (Nova Pink)',
+    '04': 'Violet (Galactic Purple)', '05': 'Bleu (Starlight Blue)', '06': 'Camouflage gris', '07': 'Volcanic Red',
+    '08': 'Sterling Silver', '09': 'Cobalt Blue', '10': 'Chroma Teal', '11': 'Chroma Indigo', '12': 'Chroma Pearl',
+    '13': 'HyperPop Techno Red', '14': 'HyperPop Remix Green', '15': 'HyperPop Rhythm Blue', '30': '30e anniversaire',
+    'Z1': 'God of War Ragnarök', 'Z2': 'Spider-Man 2', 'Z3': 'Astro Bot', 'Z4': 'Fortnite', 'Z5': 'Monster Hunter Wilds',
+    'Z6': 'The Last of Us', 'ZA': 'God of War 20e anniversaire', 'ZB': 'Icon Blue (édition limitée)',
+    'ZC': 'Astro Bot Joyful / Ghost of Yōtei (édition limitée)', 'ZD': 'Marathon (édition limitée)',
+    'ZE': 'Genshin Impact (édition limitée)', 'ZF': '007 First Light (édition limitée)',
+  };
+
+  // Modèle de carte mère d'après la version matérielle (rapport 0x20)
+  function boardModel(hw, model) {
+    if (hw == null || model === 'DualSense Edge') return null;
+    const a = (hw >> 8) & 0xff;
+    return { 0x03: 'BDM-010', 0x04: 'BDM-020', 0x05: 'BDM-030', 0x06: 'BDM-040', 0x07: 'BDM-050', 0x08: 'BDM-050',
+      0x09: 'BDM-060R', 0x11: 'BDM-060M', 0x13: 'BDM-060X' }[a] || ('Inconnu (0x' + hex(a) + ')');
+  }
+
+  // ---------- Télémétrie (compteurs d'usage en mémoire de la manette) ----------
+  // Structure et décodage d'après daidr/dualsense-tester (MIT), src/utils/dualsense/telemetry.util.ts
+  function tCount(d, i) {
+    const v = d.getUint32(i, true), lo = v & 0xffff, hi = (v >>> 16) & 0xffff;
+    if (hi === 0) return lo;
+    if (hi >= 0xff00 && lo >= 0xff00) return 0;
+    return lo;
+  }
+  function tCountHigh(d, i) { const v = d.getUint16(i + 2, true); return v < 0xff00 ? v : 0; }
+  function tLow(d, i) { const v = d.getUint32(i, true) & 0xffffff; return v < 0xffff00 ? v : 0; }
+  function tShort(d, i) { return d.getUint8(i + 1) < 0xe0 ? d.getUint16(i, true) : d.getUint8(i); }
+  function tEdgeRecord(d, i) { const v = d.getUint32(i, true); return v === 0xffffffff || v < 0xedf00000 ? 0 : v - 0xedf00000; }
+  function tEdgeStroke(d, i) {
+    const v = d.getUint32(i, true), lo = v & 0xffff, hi = (v >>> 16) & 0xffff;
+    if (lo >= 0xff00) { const x = v - (hi * 0x10000 + 0xff00); if (x >= 0 && x < 100000) return x; }
+    return hi === 0 ? lo : v;
+  }
+  function tAscii(d, off, len, alnum) {
+    let s = '';
+    for (let i = 0; i < len; i++) {
+      const c = d.getUint8(off + i);
+      if (alnum ? !((c >= 0x30 && c <= 0x39) || (c >= 0x41 && c <= 0x5a)) : c === 0) break;
+      s += String.fromCharCode(c);
+    }
+    return s;
+  }
+  function parseTelemetry(d, isEdge) {
+    const t = {
+      serial: tAscii(d, 0, 17),
+      totalRecordCount: isEdge ? tEdgeRecord(d, 17) : d.getUint32(17, true),
+      totalActiveTime: tLow(d, 21), totalChargeTime: tLow(d, 25), hapticActiveTime: tLow(d, 29),
+      triggerLeftActiveTime: tCount(d, 33), triggerRightActiveTime: tCount(d, 37),
+      batteryChargeCount: tShort(d, 41),
+      usbSdp: d.getUint16(43, true), usbCdp: tShort(d, 45), usbDcp: d.getUint16(47, true),
+      usbTypeC15: d.getUint16(49, true), usbTypeC30: d.getUint16(51, true), usbUnknown: d.getUint16(53, true),
+      chargerConnectCount: d.getUint16(55, true),
+      chargeVoltageErrors: d.getUint8(57), chargeTemperatureErrors: d.getUint8(58), chargePmicErrors: d.getUint8(59),
+      fullChargeCount: d.getUint16(60, true),
+      headsetDetectCount: d.getUint16(62, true), headphoneDetectCount: d.getUint16(64, true),
+      usbConnectCount: d.getUint16(66, true), btConnectCount: d.getUint16(68, true), btTimeoutCount: d.getUint16(70, true),
+      subcpuStartupErrors: d.getUint16(72, true),
+      authChallengeCount: tCount(d, 74), authSuccessCount: tCount(d, 78), authFailCount: tCount(d, 82),
+      buttons: {}, sticks: {},
+    };
+    if (isEdge) {
+      [['up', 86], ['down', 90], ['left', 94], ['right', 98], ['triangle', 102], ['cross', 106], ['square', 110], ['circle', 114],
+        ['l1', 118], ['r1', 134], ['touch', 150], ['touchpad', 154], ['options', 158], ['create', 162], ['ps', 166]]
+        .forEach(([k, o]) => { t.buttons[k] = tCount(d, o); });
+      t.buttons.l2 = tEdgeStroke(d, 122) + tEdgeStroke(d, 126) + tEdgeStroke(d, 130);
+      t.buttons.r2 = tEdgeStroke(d, 138) + tEdgeStroke(d, 142) + tEdgeStroke(d, 146);
+      t.buttons.mute = tCountHigh(d, 170); t.buttons.paddleL = tCountHigh(d, 174); t.buttons.paddleR = tCountHigh(d, 178);
+      t.stickModuleL = { serial: tAscii(d, 182, 17, true), x: d.getUint32(199, true), y: d.getUint32(205, true) };
+      t.stickModuleR = { serial: tAscii(d, 219, 17, true), x: d.getUint32(236, true), y: d.getUint32(242, true) };
+    } else {
+      t.sticks = {
+        lx: d.getUint32(86, true), ly: d.getUint32(92, true), rx: d.getUint32(98, true), ry: d.getUint32(104, true),
+        lxRange: d.getUint16(90, true), lyRange: d.getUint16(96, true), rxRange: d.getUint16(102, true), ryRange: d.getUint16(108, true),
+      };
+      [['up', 110], ['down', 114], ['left', 118], ['right', 122], ['triangle', 126], ['cross', 130], ['square', 134], ['circle', 138],
+        ['l1', 142], ['l2', 146], ['l3', 150], ['r1', 154], ['r2', 158], ['r3', 162], ['touch', 166], ['touchpad', 170],
+        ['options', 174], ['create', 178], ['ps', 182], ['mute', 186]]
+        .forEach(([k, o]) => { t.buttons[k] = tCount(d, o); });
+    }
+    return t;
+  }
+
   function fwString(v) {
     if (v == null) return '—';
     return ((v >>> 24) & 0xff) + '.' + hex((v >>> 16) & 0xff) + '.' + hex(v & 0xffff, 4) + '  (0x' + hex(v, 8) + ')';
   }
 
   global.DualSense = DualSense;
-  global.DSUtil = { hex, hexDump, crc32, TriggerFx, fwString, TOUCH_W, TOUCH_H, parseFull, parseCalibration };
+  global.DSUtil = { hex, hexDump, crc32, TriggerFx, fwString, TOUCH_W, TOUCH_H, parseFull, parseCalibration, parseTelemetry, COLORS };
 })(window);

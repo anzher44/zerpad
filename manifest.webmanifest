@@ -1,0 +1,12 @@
+{
+  "name": "ZherPad — diagnostic manette PS5",
+  "short_name": "ZherPad",
+  "description": "Diagnostic, infos usine, historique d'usage et validation de manette DualSense.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d1117",
+  "theme_color": "#2f6bff",
+  "lang": "fr",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
