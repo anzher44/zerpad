@@ -40,12 +40,12 @@ The interface is available in French and English (button in the top bar, detecte
 | 2 | Authenticity | no counterfeit signs, serial number readable |
 | 3 | Battery | no charging error, charges when plugged in |
 | 4 | Buttons | every button pressed and released |
-| 5 | Stick drift | resting deviation 10 % or less, noise 2.5 or less |
-| 6 | Stick range | full travel on both axes, contour 90 %, circularity error under 15 % |
-| 7 | Return to center | 5 releases per stick, back within 10 %, median overshoot under 18 % |
+| 5 | Stick drift | resting offset 6 % or less, noise 1.5 % or less |
+| 6 | Stick range | full travel on both axes, contour 90 %, mean circularity error under 15 % |
+| 7 | Return to center | 5 releases per stick, back within 8 %, median overshoot under 18 % |
 | 8 | L2 / R2 | full travel and return to rest |
 | 9 | Touchpad | 95 % of the surface and two fingers at once |
-| 10 | Motion at rest | gyro under 3 °/s, gravity between 0.9 and 1.1 g |
+| 10 | Motion at rest | gyro under 2 °/s, noise under 1 °/s, gravity between 0.95 and 1.05 g |
 | 11 | Motion | each gyro axis over 150 °/s, each accelerometer axis reaches 0.7 g |
 | 12-18 | Rumble, adaptive triggers, lightbar, LEDs | confirmed by the operator |
 | 19-21 | Speaker, microphone, headphone jack | optional |
