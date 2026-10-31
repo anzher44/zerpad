@@ -272,8 +272,9 @@
   }
   function circularity(s) {
     let n = 0, sum = 0;
-    for (let i = 0; i < BINS; i++) if (s.bins[i] > 0) { n++; sum += (s.bins[i] - 1) ** 2; }
-    return { coverage: n / BINS, error: n ? Math.sqrt(sum / n) * 100 : null };
+    // mean distance between the outer contour and a perfect circle, in % of the radius
+    for (let i = 0; i < BINS; i++) if (s.bins[i] > 0) { n++; sum += Math.abs(s.bins[i] - 1); }
+    return { coverage: n / BINS, error: n ? sum / n * 100 : null };
   }
   $('btnClearTrace').addEventListener('click', () => { stickStats.L = newStickStats(); stickStats.R = newStickStats(); });
 
@@ -551,7 +552,7 @@
           const c0 = ds.reportCount; await sleep(1200);
           const n = ds.reportCount - c0;
           const okFw = ds.info.fwVersion != null, okMac = !!ds.info.mac, okCal = !!(ds.calib && ds.calib.valid);
-          const okRate = n > 50;
+          const okRate = n / 1.2 > 100;
           t.data = { reportsPerSec: Math.round(n / 1.2), firmware: okFw, mac: okMac, calibration: okCal, simpleMode: ds.simpleMode };
           t.detail = [
             Math.round(n / 1.2) + tr(' rapports/s') + (okRate ? '' : tr(' (trop peu)')),
@@ -619,36 +620,46 @@
       }),
       T({
         id: 'drift', title: 'Sticks au repos (dérive / drift)',
-        instructions: 'Lâchez complètement les deux sticks, posez la manette, puis cliquez « Lancer ». Mesure pendant 3 s : décalage, bruit (jitter) et zone morte conseillée. Tolérance : écart ≤ 10 %, bruit ≤ 2,5.',
+        instructions: 'Lâchez complètement les deux sticks, posez la manette, puis cliquez « Lancer ». Mesure pendant 3 s le décalage moyen au repos et le bruit. Exige : décalage ≤ 6 % et bruit ≤ 1,5 %.',
         kind: 'auto',
         start(t) {
           t.status = 'running'; t.data = { s: [], t0: performance.now() }; t.detail = tr('Ne touchez pas les sticks…'); renderTests();
         },
-        onState(st) { this.data.s.push([st.lx, st.ly, st.rx, st.ry]); },
+        onState(st) {
+          // the first 250 ms are ignored, the sticks may still be settling
+          if (st.time - this.data.t0 > 250) this.data.s.push([st.lx, st.ly, st.rx, st.ry]);
+        },
         tick(now) {
           const d = this.data;
-          if (now - d.t0 < 3000) return;
+          if (now - d.t0 < 3250) return;
           const res = {};
+          let moved = false;
           [['L', 0], ['R', 2]].forEach(([n, i]) => {
-            let mx = 0, sx = 0, sy = 0;
-            for (const s of d.s) { const x = norm(s[i]), y = norm(s[i + 1]); mx = Math.max(mx, Math.hypot(x, y)); sx += s[i]; sy += s[i + 1]; }
-            const k = d.s.length || 1, ax = sx / k, ay = sy / k;
-            let vx = 0, vy = 0;
-            for (const s of d.s) { vx += (s[i] - ax) ** 2; vy += (s[i + 1] - ay) ** 2; }
-            const jitter = Math.max(Math.sqrt(vx / k), Math.sqrt(vy / k));
-            const offset = Math.hypot(ax - 127.5, ay - 127.5);
-            res[n] = {
-              maxDev: +(mx * 100).toFixed(1), rawMean: [+ax.toFixed(1), +ay.toFixed(1)],
-              offset: +offset.toFixed(1), jitter: +jitter.toFixed(2),
-              deadzone: Math.ceil((offset + 3.5 * jitter + 1) / 127.5 * 100),
-            };
+            const k = d.s.length || 1;
+            let sx = 0, sy = 0;
+            for (const s of d.s) { sx += norm(s[i]); sy += norm(s[i + 1]); }
+            const mx = sx / k, my = sy / k;
+            const dist = d.s.map(s => Math.hypot(norm(s[i]) - mx, norm(s[i + 1]) - my)).sort((a, b) => a - b);
+            const p95 = dist.length ? dist[Math.floor(dist.length * 0.95)] : 0;
+            if (dist.length && dist[dist.length - 1] > 0.08) moved = true;
+            const offset = Math.hypot(mx, my) * 100, noise = p95 * 100;
+            res[n] = { offset: +offset.toFixed(2), noise: +noise.toFixed(2), deadzone: Math.ceil(offset + noise + 1) };
           });
+          if (moved && (d.retries || 0) < 2) {
+            this.data = { s: [], t0: now, retries: (d.retries || 0) + 1 };
+            this.detail = tr('Mouvement détecté, nouvelle mesure : ne touchez pas les sticks…');
+            renderTestBody(this);
+            return;
+          }
           this.data = { left: res.L, right: res.R, samples: d.s.length };
-          const ok = r => r.maxDev <= 10 && r.jitter <= 2.5;
-          const q = v => v <= 5 ? tr('excellent') : v <= 10 ? tr('bon') : v <= 15 ? tr('dérive légère') : tr('DÉRIVE');
-          const f = (name, r) => name + ' : ' + r.maxDev + ' % (' + q(r.maxDev) + tr('), bruit ') + r.jitter + tr(', zone morte conseillée ') + r.deadzone + ' %';
-          this.detail = f(tr('Gauche'), res.L) + ' | ' + f(tr('Droit'), res.R);
-          finish(this, ok(res.L) && ok(res.R) && d.s.length > 20);
+          // Offset tiers from real-unit data: 1 LSB = 1.25 %, 3.5 % = upper bound of mild drift (sense-calibrator),
+          // new units measured up to about 5 % (gamepadla). Noise above 1.5 % points to a worn potentiometer.
+          const ok = r => r.offset <= 6 && r.noise <= 1.5;
+          const q = r => r.noise > 1.5 ? tr('potentiomètre usé') : r.offset <= 1.25 ? tr('parfait') : r.offset <= 3.5 ? tr('bon')
+            : r.offset <= 6 ? tr('léger décalage, calibration conseillée') : tr('DÉRIVE');
+          const f = (name, r) => name + ' : ' + r.offset + ' % (' + q(r) + tr('), bruit ') + r.noise + tr(' %, zone morte conseillée ') + r.deadzone + ' %';
+          this.detail = (moved ? tr('Mesure instable. ') : '') + f(tr('Gauche'), res.L) + ' | ' + f(tr('Droit'), res.R);
+          finish(this, !moved && ok(res.L) && ok(res.R) && d.s.length > 20);
         },
       }),
       T({
@@ -676,7 +687,7 @@
       }),
       T({
         id: 'snapback', title: 'Retour au centre des sticks',
-        instructions: 'Poussez un stick à fond puis LÂCHEZ-LE d\'un coup (sans l\'accompagner). Répétez 5 fois par stick, dans différentes directions. Exige : retour au centre ≤ 10 % et rebond médian < 18 %.',
+        instructions: 'Poussez un stick à fond puis LÂCHEZ-LE d\'un coup (sans l\'accompagner). Répétez 5 fois par stick, dans différentes directions. Exige : retour au centre ≤ 8 % et rebond médian < 18 %.',
         kind: 'auto',
         start(t) {
           t.status = 'running';
@@ -709,7 +720,7 @@
             return { count: rel.length, overMedian: +(ov[Math.floor(ov.length / 2)] * 100).toFixed(1), restMax: +(Math.max(...rel.map(v => v.rest)) * 100).toFixed(1) };
           };
           const a = sum('L'), b = sum('R');
-          const ok = v => v && v.count >= 5 && v.restMax <= 10 && v.overMedian < 18;
+          const ok = v => v && v.count >= 5 && v.restMax <= 8 && v.overMedian < 18;
           const txt = [tr('Gauche'), tr('Droit')].map((nm, i) => {
             const v = i ? b : a;
             return nm + ' : ' + (v ? v.count + tr('/5 lâchers, retour ') + v.restMax + tr(' %, rebond ') + v.overMedian + ' %' : tr('0/5 lâchers'));
@@ -763,7 +774,7 @@
       }),
       T({
         id: 'imuStill', title: 'Capteurs au repos (gyroscope / accéléromètre)',
-        instructions: 'Posez la manette à plat sur une table, ne la touchez plus, cliquez « Lancer ». Exige : gyro moyen < 3 °/s, bruit faible, |accélération| entre 0,9 et 1,1 g.',
+        instructions: 'Posez la manette à plat sur une table, ne la touchez plus, cliquez « Lancer ». Exige : gyro moyen < 2 °/s, bruit < 1 °/s, gravité mesurée entre 0,95 et 1,05 g.',
         kind: 'auto',
         start(t) {
           if (ds.simpleMode || !ds.state || !ds.state.gyro) { t.detail = tr('Capteurs indisponibles'); return finish(t, false); }
@@ -779,7 +790,7 @@
           const am = d.a.reduce((s, v) => s + v, 0) / (d.a.length || 1);
           const maxMean = Math.max(...mean.map(Math.abs)), maxSd = Math.max(...sd);
           this.data = { gyroMean: mean.map(v => +v.toFixed(2)), gyroNoise: sd.map(v => +v.toFixed(2)), accelMagnitude: +am.toFixed(3), samples: d.g.length };
-          const ok = maxMean < 3 && maxSd < 2 && am > 0.9 && am < 1.1 && d.g.length > 20;
+          const ok = maxMean < 2 && maxSd < 1 && am > 0.95 && am < 1.05 && d.g.length > 20;
           this.detail = tr('Gyro moyen max ') + maxMean.toFixed(2) + tr(' °/s, bruit ') + maxSd.toFixed(2) + ' °/s, |a| = ' + am.toFixed(3) + ' g';
           finish(this, ok);
         },
@@ -929,7 +940,7 @@
         if (t.kind === 'auto' && t.required) mk(tr('Abandonner (échec)'), 'bad', () => { t.detail += tr(' (abandonné)'); finish(t, false); });
         mk(tr('Passer'), 'ghost', () => { t.status = 'skip'; touchShowGrid = false; renderTests(); });
       } else {
-        mk(t.status === 'pending' ? tr('Lancer') : tr('Relancer'), 'primary', () => {
+        mk(t.status === 'pending' ? tr('Lancer') : tr('Relancer'), t.status === 'pending' ? 'primary' : 'ghost small', () => {
           if (!ds.device) { alert(tr('Connectez d\'abord la manette.')); return; }
           t.detail = ''; t.start(t);
         });

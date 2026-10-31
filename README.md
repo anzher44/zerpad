@@ -50,6 +50,22 @@ The interface is available in French and English (button in the top bar, detecte
 | 12-18 | Rumble, adaptive triggers, lightbar, LEDs | confirmed by the operator |
 | 19-21 | Speaker, microphone, headphone jack | optional |
 
+## How the pass criteria were chosen
+
+The thresholds are based on published measurements, not guesses:
+
+| Test | Threshold | Reference |
+|------|-----------|-----------|
+| Stick resting offset | 6 % max (1.25 % = within one step, 3.5 % = mild drift) | [sense-calibrator](https://github.com/martino-vigiani/sense-calibrator) tiers built from real controllers; [Gamepadla](https://gamepadla.com/sony-dualsense.html) measured 2.7 % and 5.1 % centering on a new DualSense |
+| Stick noise | 1.5 % max (95th percentile) | sense-calibrator uses the same limit to flag a worn potentiometer |
+| Circularity | mean error under 15 % | Gamepadla measured 7.8 % and 8.2 % on a new DualSense |
+| Return to center | 8 % max, median overshoot under 18 % | overshoot bands from [dualsense-doctor](https://github.com/Sufxx/dualsense-doctor); return limit set above the centering measured on new units |
+| Gyroscope at rest | mean under 2 °/s, noise under 1 °/s | about 4× the values measured on a working controller (0.56 °/s, 0.25 °/s) |
+| Accelerometer at rest | 0.95 to 1.05 g | gravity is 1 g; a working controller read 1.007 g |
+| Report rate | over 100 reports/s | a DualSense over USB reports about 250 times per second |
+
+These values will be refined as more controllers are measured. If a controller you know is good fails a test, please open an issue with the JSON report.
+
 ## Stick calibration
 
 Calibration fixes a resting position that is off center and travel that does not reach the edge. It does not fix a worn or dirty stick.

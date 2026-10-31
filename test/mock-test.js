@@ -249,6 +249,7 @@ const MOCK = `
 
   console.log('verdict:', await page.textContent('#verdict'), '|', await page.textContent('#verdictDetail'));
   if (process.argv[2]) {
+    await page.click('.tab[data-tab=val]'); await page.waitForTimeout(200);
     await page.screenshot({ path: process.argv[2] + '/validation.png', fullPage: true });
     await page.click('.tab[data-tab=live]'); await set({ lx: 200, ly: 60, l2: 180, touch: [[600, 400], null], b0: 0x28 }); await page.waitForTimeout(300);
     await page.screenshot({ path: process.argv[2] + '/live.png', fullPage: true });
