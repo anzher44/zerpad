@@ -81,9 +81,9 @@ Run the test:
 node test/mock-test.js
 ```
 
-## Credits
+## Acknowledgements
 
-The protocol details come from the Linux `hid-playstation` driver, [daidr/dualsense-tester](https://github.com/daidr/dualsense-tester) and [dualshock-tools](https://github.com/dualshock-tools/dualshock-tools.github.io). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Thanks to the authors of the Linux `hid-playstation` driver, [daidr/dualsense-tester](https://github.com/daidr/dualsense-tester) and [dualshock-tools](https://github.com/dualshock-tools/dualshock-tools.github.io) for documenting the DualSense protocol. License notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## License
 
