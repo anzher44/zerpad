@@ -470,10 +470,8 @@ window.I18N_EN = {
  "Résultats des tests": "Test results",
  "Test": "Test",
  "Mesure": "Measurement",
- "Contrôlé par": "Inspected by",
- "Date": "Date",
- "Signature": "Signature",
  "Mesures automatiques ZherPad v": "Automatic measurements by ZherPad v",
  "Seuils et sources : github.com/anzher44/zherpad": "Thresholds and sources: github.com/anzher44/zherpad",
- "usage": "usage"
+ "Portée du contrôle": "Scope of this inspection",
+ "Ce rapport donne une image de l'état de la manette au moment du contrôle. Il repose sur des mesures automatiques (sticks, gâchettes, boutons, pavé tactile, capteurs de mouvement, batterie, compteurs enregistrés par la manette) et sur la confirmation de l'opérateur pour les vibrations, les gâchettes adaptatives et l'éclairage. Il fournit une information minimale sur le bon fonctionnement constaté ce jour-là et ne remplace pas une expertise matérielle complète : il ne permet pas d'évaluer l'usure future, l'état interne des composants ni l'autonomie réelle de la batterie. Les seuils utilisés et leurs sources sont publiés sur github.com/anzher44/zherpad.": "This report gives a picture of the controller's condition at the time of the inspection. It is based on automatic measurements (sticks, triggers, buttons, touchpad, motion sensors, battery, counters recorded by the controller) and on the operator's confirmation for rumble, adaptive triggers and lighting. It provides minimal information on the correct operation observed that day and does not replace a full hardware assessment: it cannot assess future wear, the internal condition of the components or the actual battery life. The thresholds used and their sources are published at github.com/anzher44/zherpad."
 };

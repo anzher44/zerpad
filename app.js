@@ -1155,6 +1155,12 @@
   });
 
   // One-page A4 report
+  const REPORT_SCOPE = 'Ce rapport donne une image de l\'état de la manette au moment du contrôle. Il repose sur des mesures automatiques ' +
+    '(sticks, gâchettes, boutons, pavé tactile, capteurs de mouvement, batterie, compteurs enregistrés par la manette) et sur la ' +
+    'confirmation de l\'opérateur pour les vibrations, les gâchettes adaptatives et l\'éclairage. Il fournit une information ' +
+    'minimale sur le bon fonctionnement constaté ce jour-là et ne remplace pas une expertise matérielle complète : il ne permet pas ' +
+    'd\'évaluer l\'usure future, l\'état interne des composants ni l\'autonomie réelle de la batterie. Les seuils utilisés et leurs ' +
+    'sources sont publiés sur github.com/anzher44/zherpad.';
   $('btnPrint').addEventListener('click', () => {
     const r = buildReport(); saveHistory(r);
     const d = r.device, f = r.factory || {}, u = r.usage, v = computeVerdict();
@@ -1168,7 +1174,7 @@
       row(tr('Authenticité'), f.cloneReasons && (f.cloneReasons.length ? tr('SUSPECTE : ') + f.cloneReasons.map(trReason).join(', ') : tr('Sony d\'origine'))),
     ].join('');
     const usage = u ? [
-      row(tr('Temps d\'utilisation'), fmtDuration(u.totalActiveTime) + (u.partial ? '' : ', ' + tr('usage') + ' ' + usageLevel(u.totalActiveTime).toLowerCase())),
+      row(tr('Temps d\'utilisation'), fmtDuration(u.totalActiveTime)),
       u.partial ? '' : row(tr('Temps de charge'), fmtDuration(u.totalChargeTime)),
       u.partial ? '' : row(tr('Charges'), num(u.batteryChargeCount) + tr(', complètes : ') + num(u.fullChargeCount)),
       u.partial ? '' : row(tr('Allumages de la manette'), num(u.totalRecordCount)),
@@ -1188,7 +1194,7 @@
       '<div><h2>' + tr('Usage enregistré par la manette') + '</h2><table>' + usage + '</table></div></section>' +
       '<h2>' + tr('Résultats des tests') + '</h2><table class="rp-tests"><thead><tr><th class="n">#</th><th>' + tr('Test') + '</th><th>' + tr('Résultat') + '</th><th>' + tr('Mesure') + '</th></tr></thead><tbody>' + tests + '</tbody></table>' +
       (r.notes ? '<p class="rp-notes"><b>' + tr('Notes') + ' :</b> ' + esc(r.notes) + '</p>' : '') +
-      '<footer class="rp-sign"><div>' + tr('Contrôlé par') + '</div><div>' + tr('Date') + '</div><div>' + tr('Signature') + '</div></footer>' +
+      '<section class="rp-scope"><h2>' + tr('Portée du contrôle') + '</h2><p>' + tr(REPORT_SCOPE) + '</p></section>' +
       '<p class="rp-foot">' + tr('Mesures automatiques ZherPad v') + VERSION + '. ' + tr('Seuils et sources : github.com/anzher44/zherpad') + '</p>';
     const img = $('rpPad');
     const go = () => window.print();
