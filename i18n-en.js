@@ -447,5 +447,13 @@ window.I18N_EN = {
  " (lent)": " (slow)",
  "Posez la manette à plat sur une table, ne la touchez plus, cliquez « Lancer ». Exige : gyro moyen < 3 °/s, bruit < 1 °/s, gravité mesurée entre 0,92 et 1,08 g. Si la manette bouge, la mesure recommence.": "Lay the controller flat on a table, don't touch it, click \"Run\". Requires: mean gyro under 3 °/s, noise under 1 °/s, measured gravity between 0.92 and 1.08 g. If the controller moves, the measurement starts again.",
  "Manette bougée, nouvelle mesure…": "Controller moved, measuring again…",
- "Manette bougée pendant la mesure. ": "Controller moved during the measurement. "
+ "Manette bougée pendant la mesure. ": "Controller moved during the measurement. ",
+ "Allumages de la manette": "Power-ons",
+ "Sources de charge USB": "USB charging sources",
+ "ordinateur ": "computer ",
+ ", port de charge ": ", charging port ",
+ ", chargeur mural ": ", wall charger ",
+ ", inconnu ": ", unknown ",
+ " demandes, ": " requests, ",
+ ", USB-C 1,5 A ": ", USB-C 1.5 A "
 };

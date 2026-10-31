@@ -195,12 +195,16 @@
     const rows = [
       [tr('Temps d\'utilisation total'), fmtDuration(t.totalActiveTime) + ' [' + num(t.totalActiveTime) + ' s]'],
       [tr('Niveau d\'usage (indicatif)'), usageLevel(t.totalActiveTime)],
+      [tr('Allumages de la manette'), num(t.totalRecordCount)],
       [tr('Temps de charge total'), fmtDuration(t.totalChargeTime)],
       [tr('Charges (branchements)'), num(t.batteryChargeCount) + tr(', complètes : ') + num(t.fullChargeCount)],
       [tr('Vibrations actives'), fmtDuration(t.hapticActiveTime)],
       [tr('Gâchettes adaptatives actives'), tr('G ') + fmtDuration(t.triggerLeftActiveTime) + tr(', D ') + fmtDuration(t.triggerRightActiveTime)],
       [tr('Connexions USB / Bluetooth'), num(t.usbConnectCount) + ' / ' + num(t.btConnectCount) + (t.btTimeoutCount ? tr(' (pertes BT : ') + num(t.btTimeoutCount) + ')' : '')],
-      [tr('Authentifications console'), num(t.authSuccessCount) + tr(' réussies, ') + num(t.authFailCount) + tr(' échouées')],
+      // USB charger types as detected by the charging chip: SDP = computer port, CDP = charging port, DCP = wall charger
+      [tr('Sources de charge USB'), tr('ordinateur ') + num(t.usbSdp) + tr(', port de charge ') + num(t.usbCdp) + tr(', chargeur mural ') + num(t.usbDcp) +
+        tr(', USB-C 1,5 A ') + num(t.usbTypeC15) + ', USB-C 3 A ' + num(t.usbTypeC30) + (t.usbUnknown ? tr(', inconnu ') + num(t.usbUnknown) : '')],
+      [tr('Authentifications console'), num(t.authChallengeCount) + tr(' demandes, ') + num(t.authSuccessCount) + tr(' réussies, ') + num(t.authFailCount) + tr(' échouées')],
       [tr('Casque / écouteurs branchés'), num(t.headsetDetectCount + t.headphoneDetectCount) + tr(' fois')],
       [tr('Erreurs de charge'), errs ? errs + tr(' (tension ') + t.chargeVoltageErrors + ', temp. ' + t.chargeTemperatureErrors + ', PMIC ' + t.chargePmicErrors + ')' : '0'],
       [tr('Erreurs démarrage sous-CPU'), num(t.subcpuStartupErrors)],
