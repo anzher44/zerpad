@@ -5,7 +5,7 @@ Browser tool to test, validate and recalibrate PS5 DualSense controllers.
 Live version: https://anzher44.github.io/zherpad/
 
 It runs entirely in the browser through WebHID. Nothing is installed and nothing is sent over the network.
-The interface is in French.
+The interface is available in French and English (button in the top bar, detected from the browser language by default).
 
 ## Features
 
@@ -65,6 +65,7 @@ Plain HTML, CSS and JavaScript, no build step.
 
 - `dualsense.js`: HID protocol (input and output reports, feature reports, factory commands, telemetry, calibration)
 - `app.js`: interface, tests and reports
+- `i18n.js`, `i18n-en.js`: French / English interface
 - `calibration.js`: calibration steps
 - `sw.js`, `manifest.webmanifest`: offline support
 - `test/mock-test.js`: end-to-end test with a simulated controller (Playwright)

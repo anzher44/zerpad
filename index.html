@@ -22,21 +22,22 @@
   <div class="conn">
     <span id="connStatus" class="pill off">Non connectée</span>
     <button id="btnConnect" class="primary">Connecter la manette</button>
+    <button id="btnLang" class="ghost small" title="Langue / Language">EN</button>
     <button id="btnPowerOff" class="ghost" hidden>Éteindre</button>
     <button id="btnDisconnect" class="ghost" hidden>Déconnecter</button>
   </div>
 </header>
 
-<div id="unsupported" class="banner warn" hidden>
+<div id="unsupported" class="banner warn" hidden data-i18n-html>
   Votre navigateur ne gère pas <b>WebHID</b>. Ouvrez cette page avec <b>Google Chrome</b> ou <b>Microsoft Edge</b> (ordinateur).
 </div>
-<div id="hint" class="banner info">
+<div id="hint" class="banner info" data-i18n-html>
   1. Branchez la manette en <b>USB</b> (recommandé) ou appairez-la en Bluetooth. 2. Cliquez sur <b>Connecter la manette</b> et choisissez
   « DualSense Wireless Controller ». 3. Suivez l'onglet <b>Validation</b>.
 </div>
 <div id="seenBefore" class="banner info" hidden></div>
 <div id="cloneWarn" class="banner bad" hidden></div>
-<div id="bthint" class="banner warn" hidden>
+<div id="bthint" class="banner warn" hidden data-i18n-html>
   Connexion <b>Bluetooth</b> détectée : tout fonctionne sauf les tests audio (haut-parleur / micro), qui exigent l'USB.
 </div>
 
@@ -225,9 +226,9 @@
 <section id="tab-cal" class="panel">
   <div class="card">
     <h2>Recalibration des sticks</h2>
-    <p class="small">Corrige un <b>centre décalé</b> (dérive d'origine électrique) et une <b>amplitude incomplète</b>, comme le fait l'usine.
+    <p class="small" data-i18n-html>Corrige un <b>centre décalé</b> (dérive d'origine électrique) et une <b>amplitude incomplète</b>, comme le fait l'usine.
       Une calibration ne répare pas un stick physiquement usé ou sale : si la dérive revient, le module stick doit être nettoyé ou remplacé.</p>
-    <div class="banner warn">
+    <div class="banner warn" data-i18n-html>
       Attention, cette opération écrit dans la manette. Les résultats restent <b>temporaires</b> (perdus à l'extinction) tant que vous ne cliquez pas
       sur « Sauvegarder définitivement ». Ne débranchez pas la manette pendant une étape. Utilisation à vos risques.
     </div>
@@ -287,6 +288,9 @@
   <a href="https://github.com/anzher44/zherpad">Code source</a>
 </footer>
 
+<script src="i18n-en.js"></script>
+<script src="i18n.js"></script>
+<script>I18N.collect(); I18N.applyStatic(); document.getElementById('btnLang').addEventListener('click', () => I18N.setLang(I18N.lang === 'fr' ? 'en' : 'fr'));</script>
 <script src="dualsense.js"></script>
 <script src="app.js"></script>
 <script src="calibration.js"></script>

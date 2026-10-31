@@ -132,7 +132,7 @@
 
     async request() {
       const devs = await navigator.hid.requestDevice({ filters: DualSense.filters });
-      if (!devs.length) throw new Error('Aucune manette choisie');
+      if (!devs.length) throw new Error('no controller selected');
       return this.open(devs[0]);
     }
 
@@ -149,7 +149,7 @@
       // Guess the transport from the presence of the Bluetooth report 0x31 in the collections
       this.transport = guessTransport(device);
       device.addEventListener('inputreport', this._onInput);
-      this.log('Ouverte : ' + device.productName + ' (' + this.transport.toUpperCase() + ' supposé)');
+      this.log('Opened: ' + device.productName + ' (' + this.transport.toUpperCase() + ' assumed)');
       await this._readFeatures();
       this._lightbarSetupDone = false;
       await this.sendOutput();
@@ -186,15 +186,15 @@
       try {
         const b = await this._getFeature(FR_CALIBRATION);
         this.calib = parseCalibration(b);
-        this.log('Calibration IMU lue (' + b.length + ' octets)');
-      } catch (e) { this.log('Calibration illisible : ' + e.message); }
+        this.log('IMU calibration read (' + b.length + ' bytes)');
+      } catch (e) { this.log('IMU calibration unreadable: ' + e.message); }
 
       try {
         const b = await this._getFeature(FR_PAIRING);
         const mac = [];
         for (let i = 6; i >= 1; i--) mac.push(hex(b[i]));
         this.info.mac = mac.join(':');
-      } catch (e) { this.log('Adresse MAC illisible : ' + e.message); }
+      } catch (e) { this.log('MAC address unreadable: ' + e.message); }
 
       try {
         const b = await this._getFeature(FR_FIRMWARE);
@@ -214,8 +214,8 @@
           this.info.spiderVersion = dv.getUint32(56, true);
         }
         this.info.boardModel = boardModel(this.info.hwVersion, this.model);
-        this.log('Firmware : 0x' + hex(this.info.fwVersion, 8) + ', mise à jour 0x' + hex(this.info.updateVersion || 0, 4));
-      } catch (e) { this.log('Infos firmware illisibles : ' + e.message); }
+        this.log('Firmware 0x' + hex(this.info.fwVersion, 8) + ', update 0x' + hex(this.info.updateVersion || 0, 4));
+      } catch (e) { this.log('Firmware info unreadable: ' + e.message); }
 
       this.dispatchEvent(new Event('info'));
     }
@@ -271,7 +271,7 @@
       };
       const p = this._testLock.then(run, run);
       this._testLock = p.catch(() => null);
-      return p.catch(e => { this.log('Commande test ' + devId + '/' + actId + ' : ' + e.message); return null; });
+      return p.catch(e => { this.log('Test command ' + devId + '/' + actId + ': ' + e.message); return null; });
     }
 
     /** Reads factory information (serial number, color, barcodes…). */
@@ -366,7 +366,7 @@
         const r = await this._getFeature(0x83);
         const got = ((r[0] << 24) | (r[1] << 16) | (r[2] << 8) | r[3]) >>> 0;
         if (got !== expect) {
-          const err = new Error('réponse inattendue 0x' + hex(got, 8) + ' (attendu 0x' + hex(expect, 8) + ')');
+          const err = new Error('unexpected answer 0x' + hex(got, 8) + ' (expected 0x' + hex(expect, 8) + ')');
           err.code = r[3];
           throw err;
         }
@@ -406,7 +406,7 @@
     /** Reboots the controller: unsaved (temporary) calibration is discarded. */
     /** Turns the controller off. Only supported over Bluetooth. */
     async powerOff() {
-      if (this.transport !== 'bt') throw new Error('extinction possible uniquement en Bluetooth');
+      if (this.transport !== 'bt') throw new Error('power off only works over Bluetooth');
       await this._sendFeature(0x08, [2]);
     }
 
@@ -509,7 +509,7 @@
           }
           this._lightbarSetupDone = true;
         } catch (e) {
-          this.log('Erreur envoi sortie : ' + e.message);
+          this.log('Output report error: ' + e.message);
         }
       });
       return this._sending;
@@ -588,9 +588,10 @@
       case 0xa: label = 'Erreur : tension/température hors limites'; break;
       case 0xb: label = 'Erreur : température'; break;
       case 0xf: label = 'Erreur de charge'; break;
-      default: label = 'Inconnu (0x' + hex(chg, 1) + ')';
+      default: label = 'Inconnu';
     }
-    st.battery = { pct, label, raw: status, error: chg >= 0xa };
+    // label is a French key, translated by the UI; code is the raw charge status nibble
+    st.battery = { pct, label, code: chg, charging: chg === 0x1 || chg === 0x2, raw: status, error: chg >= 0xa };
     const plug = u8[o + 53];
     st.plug = { raw: plug, headphones: !!(plug & 0x01), mic: !!(plug & 0x02), micMuted: !!(plug & 0x04), usbData: !!(plug & 0x08), usbPower: !!(plug & 0x10) };
     return st;
@@ -637,14 +638,14 @@
 
   // Color from characters 5-6 of the serial number (sources: dualshock-tools, daidr/dualsense-tester)
   const COLORS = {
-    '00': 'Blanc (White)', '01': 'Noir (Midnight Black)', '02': 'Rouge (Cosmic Red)', '03': 'Rose (Nova Pink)',
-    '04': 'Violet (Galactic Purple)', '05': 'Bleu (Starlight Blue)', '06': 'Camouflage gris', '07': 'Volcanic Red',
+    '00': 'White', '01': 'Midnight Black', '02': 'Cosmic Red', '03': 'Nova Pink',
+    '04': 'Galactic Purple', '05': 'Starlight Blue', '06': 'Grey Camouflage', '07': 'Volcanic Red',
     '08': 'Sterling Silver', '09': 'Cobalt Blue', '10': 'Chroma Teal', '11': 'Chroma Indigo', '12': 'Chroma Pearl',
-    '13': 'HyperPop Techno Red', '14': 'HyperPop Remix Green', '15': 'HyperPop Rhythm Blue', '30': '30e anniversaire',
+    '13': 'HyperPop Techno Red', '14': 'HyperPop Remix Green', '15': 'HyperPop Rhythm Blue', '30': '30th Anniversary',
     'Z1': 'God of War Ragnarök', 'Z2': 'Spider-Man 2', 'Z3': 'Astro Bot', 'Z4': 'Fortnite', 'Z5': 'Monster Hunter Wilds',
-    'Z6': 'The Last of Us', 'ZA': 'God of War 20e anniversaire', 'ZB': 'Icon Blue (édition limitée)',
-    'ZC': 'Astro Bot Joyful / Ghost of Yōtei (édition limitée)', 'ZD': 'Marathon (édition limitée)',
-    'ZE': 'Genshin Impact (édition limitée)', 'ZF': '007 First Light (édition limitée)',
+    'Z6': 'The Last of Us', 'ZA': 'God of War 20th Anniversary', 'ZB': 'Icon Blue Limited Edition',
+    'ZC': 'Astro Bot Joyful / Ghost of Yōtei Limited Edition', 'ZD': 'Marathon Limited Edition',
+    'ZE': 'Genshin Impact Limited Edition', 'ZF': '007 First Light Limited Edition',
   };
 
   // Board model from the hardware version (report 0x20)
@@ -652,7 +653,7 @@
     if (hw == null || model === 'DualSense Edge') return null;
     const a = (hw >> 8) & 0xff;
     return { 0x03: 'BDM-010', 0x04: 'BDM-020', 0x05: 'BDM-030', 0x06: 'BDM-040', 0x07: 'BDM-050', 0x08: 'BDM-050',
-      0x09: 'BDM-060R', 0x11: 'BDM-060M', 0x13: 'BDM-060X' }[a] || ('Inconnu (0x' + hex(a) + ')');
+      0x09: 'BDM-060R', 0x11: 'BDM-060M', 0x13: 'BDM-060X' }[a] || ('? (0x' + hex(a) + ')');
   }
 
   // Telemetry (usage counters stored in the controller)

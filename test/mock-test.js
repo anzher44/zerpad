@@ -100,7 +100,7 @@ const MOCK = `
 
 (async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1300, height: 1000 } });
+  const page = await browser.newPage({ viewport: { width: 1300, height: 1000 }, locale: 'fr-FR' });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -228,6 +228,24 @@ const MOCK = `
   console.log('cal save:', (await page.textContent('#calStep')).slice(0, 60));
   console.log('cal commands:', (await page.evaluate(() => window.__calLog.filter(x => !x.startsWith('80:1,') && !x.startsWith('80:9,') && !x.startsWith('80:4,') && !x.startsWith('80:5,') && !x.startsWith('80:7,') && !x.startsWith('80:12,') && !x.startsWith('80:112,')))).join(' | '));
   if (process.argv[2]) await page.screenshot({ path: process.argv[2] + '/cal.png', fullPage: true });
+
+  // Language switch
+  await page.click('#btnLang');
+  await page.waitForTimeout(300);
+  const leftovers = {};
+  for (const tab of ['info', 'live', 'out', 'val', 'cal', 'raw']) {
+    await page.click('.tab[data-tab=' + tab + ']');
+    await page.waitForTimeout(150);
+    const txt = await page.evaluate(() => document.querySelector('.panel.active').innerText + ' ' + document.querySelector('.top').innerText);
+    const hits = txt.split(/\n/).filter(l => /[éèàùâêîôûç]| (la|le|les|des|du|une|pour|avec|manette) /i.test(l));
+    if (hits.length) leftovers[tab] = hits.slice(0, 8);
+  }
+  console.log('EN leftovers:', JSON.stringify(leftovers, null, 1));
+  console.log('EN verdict:', await page.textContent('#verdict'), '|', await page.textContent('#btnLang'));
+  if (process.argv[2]) { await page.click('.tab[data-tab=info]'); await page.screenshot({ path: process.argv[2] + '/en.png', fullPage: true }); }
+  await page.click('#btnLang');
+  await page.waitForTimeout(200);
+  console.log('FR back:', await page.textContent('.tab[data-tab=info]'), await page.textContent('#verdict'));
 
   console.log('verdict:', await page.textContent('#verdict'), '|', await page.textContent('#verdictDetail'));
   if (process.argv[2]) {
