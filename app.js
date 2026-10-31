@@ -1,7 +1,7 @@
 // ZherPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.1.0';
+  const VERSION = '2.2.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -60,6 +60,7 @@
     renderFeatures();
     buildButtonGrid();
     buildTests();
+    renderHero();
     loadExtras();
   });
   let extrasPromise = null;
@@ -69,8 +70,8 @@
     extrasPromise = Promise.all([ds.readFactoryInfo(), ds.readTelemetry()]).catch(e => log(tr('Infos usine : ') + e.message));
     return extrasPromise;
   }
-  ds.addEventListener('factory', () => { renderFactory(); checkSeenBefore(); });
-  ds.addEventListener('telemetry', () => { renderTelemetry(); renderFeatures(); });
+  ds.addEventListener('factory', () => { renderFactory(); checkSeenBefore(); renderHero(); });
+  ds.addEventListener('telemetry', () => { renderTelemetry(); renderFeatures(); renderHero(); });
   ds.addEventListener('transport', () => { renderInfo(); $('btnPowerOff').hidden = ds.transport !== 'bt'; });
   ds.addEventListener('info', () => { renderInfo(); renderFeatures(); });
   ds.addEventListener('closed', () => {
@@ -82,6 +83,7 @@
     $('bthint').hidden = true;
     $('seenBefore').hidden = true;
     $('cloneWarn').hidden = true;
+    renderHero();
   });
 
   function log(msg) {
@@ -176,6 +178,27 @@
   const TEL_BTN = { up: '↑', down: '↓', left: '←', right: '→', triangle: '△', circle: '○', cross: '✕', square: '□',
     l1: 'L1', l2: 'L2', l3: 'L3', r1: 'R1', r2: 'R2', r3: 'R3', options: 'Options', create: 'Create', ps: 'PS',
     mute: 'Micro', touch: 'Pavé (contacts)', touchpad: 'Pavé (clics)', paddleL: 'Palette G', paddleR: 'Palette D' };
+  // Illustration of the detected edition (Gamepad Asset Pack, MIT); unknown codes fall back to white
+  const PAD_IMAGES = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '30',
+    'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6', 'ZA', 'ZB', 'ZC', 'ZD', 'ZE', 'ZF'];
+  const padImage = code => 'assets/controllers/' + (PAD_IMAGES.includes(code) ? code : '00') + '.webp';
+  function renderHero() {
+    const f = ds.factory || {}, i = ds.info || {};
+    const on = !!ds.device;
+    $('padImg').src = padImage(on ? f.colorCode : null);
+    $('padImg').classList.toggle('idle', !on);
+    $('h-model').textContent = on ? (i.model || 'DualSense') : tr('Aucune manette connectée');
+    $('h-color').textContent = on ? (f.color || (f.colorCode ? tr('Édition inconnue (code ') + f.colorCode + ')' : '')) : tr('Branchez une manette en USB ou appairez-la en Bluetooth, puis cliquez sur « Connecter la manette ».');
+    const facts = on ? [
+      [tr('N° de série'), f.serial], [tr('Carte mère'), i.boardModel && i.boardModel.replace('?', tr('Inconnu'))],
+      [tr('Connexion'), ds.transport === 'bt' ? 'Bluetooth' : ds.transport === 'usb' ? 'USB' : null],
+      [tr('Firmware'), i.updateVersion != null ? hex(i.updateVersion >> 8) + '.' + hex(i.updateVersion & 0xff) : null],
+      [tr('Utilisation'), ds.telemetry ? fmtDuration(ds.telemetry.totalActiveTime) : null],
+    ].filter(x => x[1]) : [];
+    $('h-facts').innerHTML = facts.map(x => '<div><dt>' + x[0] + '</dt><dd>' + esc(x[1]) + '</dd></div>').join('') +
+      (on ? '<div><dt>' + tr('Batterie') + '</dt><dd id="h-bat">-</dd></div>' : '');
+  }
+
   // Counterfeit reasons come from dualsense.js in French; the year is the only variable part
   function trReason(r) {
     const m = r.match(/^firmware daté du futur \((\d+)\)$/);
@@ -343,6 +366,7 @@
       $('batFill').style.width = (st.battery.pct || 0) + '%';
       $('batFill').className = st.battery.pct != null && st.battery.pct <= 20 ? 'low' : '';
       $('i-charge').textContent = tr(st.battery.label);
+      if ($('h-bat')) $('h-bat').textContent = (st.battery.pct != null ? st.battery.pct + ' %, ' : '') + tr(st.battery.label);
       $('i-jack').textContent = (st.plug.headphones ? tr('Casque détecté') : tr('Rien de branché')) + (st.plug.mic ? tr(', micro externe') : '') + (st.plug.micMuted ? tr(', micro coupé') : '') + '  (0x' + hex(st.plug.raw) + ')';
       $('i-usb').textContent = tr('données ') + yesNo(st.plug.usbData) + tr(', alimentation ') + yesNo(st.plug.usbPower);
       $('i-ts').textContent = st.sensorTs;
@@ -1065,6 +1089,7 @@
     ).join('') + '</tbody></table>' : tr('Aucun rapport enregistré.');
   }
   renderHistory();
+  renderHero();
 
   // Before / after comparison with a previously exported JSON report
   function metrics(r) {
@@ -1129,35 +1154,45 @@
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
+  // One-page A4 report
   $('btnPrint').addEventListener('click', () => {
     const r = buildReport(); saveHistory(r);
-    const d = r.device;
-    const rows = [[tr('Modèle'), d.model], [tr('Nom'), d.productName], ['VID:PID', d.vidPid], [tr('Connexion'), d.transport === 'bt' ? 'Bluetooth' : 'USB'],
-      [tr('Adresse MAC'), d.mac], [tr('Firmware'), d.firmware], [tr('Version MAJ'), d.updateVersion], [tr('Matériel'), d.hardware], [tr('Compilation FW'), d.firmwareBuild],
-      [tr('Batterie'), d.battery ? (d.battery.percent != null ? d.battery.percent + ' %, ' : '') + d.battery.state : null],
-      [tr('Fréquence'), d.reportRate ? d.reportRate + tr(' rapports/s') : null]];
-    const f = r.factory || {};
-    if (f.serial) rows.splice(1, 0, [tr('N° de série'), f.serial]);
-    if (f.color) rows.splice(2, 0, [tr('Couleur'), f.color]);
-    if (d.boardModel) rows.push([tr('Carte mère'), d.boardModel]);
-    if (f.cloneReasons) rows.push([tr('Authenticité'), f.cloneReasons.length ? tr('SUSPECTE : ') + f.cloneReasons.map(trReason).join(', ') : tr('Sony d\'origine')]);
-    const u = r.usage;
-    const usageRows = u && !u.partial ? [[tr('Temps d\'utilisation'), fmtDuration(u.totalActiveTime) + ' (' + usageLevel(u.totalActiveTime) + ')'],
-      [tr('Temps de charge'), fmtDuration(u.totalChargeTime)], [tr('Charges'), num(u.batteryChargeCount)],
-      [tr('Connexions USB / BT'), num(u.usbConnectCount) + ' / ' + num(u.btConnectCount)],
-      [tr('Erreurs de charge'), String(u.chargeVoltageErrors + u.chargeTemperatureErrors + u.chargePmicErrors)]]
-      : u ? [[tr('Temps d\'utilisation'), fmtDuration(u.totalActiveTime)]] : [];
+    const d = r.device, f = r.factory || {}, u = r.usage, v = computeVerdict();
+    const rid = 'ZP-' + r.date.slice(0, 10).replace(/-/g, '') + '-' + (f.serial || d.mac || '000000').replace(/[^A-Za-z0-9]/g, '').slice(-6).toUpperCase();
+    const row = (k, val) => val == null || val === '' ? '' : '<tr><th>' + k + '</th><td>' + esc(val) + '</td></tr>';
+    const ident = [
+      row(tr('Modèle'), d.model), row(tr('Couleur'), f.color), row(tr('N° de série'), f.serial), row(tr('Carte mère'), d.boardModel),
+      row(tr('Adresse MAC'), d.mac), row(tr('Firmware'), d.firmware && d.firmware + (d.updateVersion ? ' (MAJ ' + d.updateVersion + ')' : '')),
+      row(tr('Connexion'), d.transport === 'bt' ? 'Bluetooth' : 'USB'),
+      row(tr('Batterie'), d.battery && ((d.battery.percent != null ? d.battery.percent + ' %, ' : '') + d.battery.state)),
+      row(tr('Authenticité'), f.cloneReasons && (f.cloneReasons.length ? tr('SUSPECTE : ') + f.cloneReasons.map(trReason).join(', ') : tr('Sony d\'origine'))),
+    ].join('');
+    const usage = u ? [
+      row(tr('Temps d\'utilisation'), fmtDuration(u.totalActiveTime) + (u.partial ? '' : ', ' + tr('usage') + ' ' + usageLevel(u.totalActiveTime).toLowerCase())),
+      u.partial ? '' : row(tr('Temps de charge'), fmtDuration(u.totalChargeTime)),
+      u.partial ? '' : row(tr('Charges'), num(u.batteryChargeCount) + tr(', complètes : ') + num(u.fullChargeCount)),
+      u.partial ? '' : row(tr('Allumages de la manette'), num(u.totalRecordCount)),
+      u.partial ? '' : row(tr('Connexions USB / BT'), num(u.usbConnectCount) + ' / ' + num(u.btConnectCount)),
+      u.partial ? '' : row(tr('Erreurs de charge'), String(u.chargeVoltageErrors + u.chargeTemperatureErrors + u.chargePmicErrors)),
+    ].join('') : '<tr><td>' + tr('Non disponible') + '</td></tr>';
+    const tests = r.tests.map((t, k) => '<tr class="' + t.status + '"><td class="n">' + (k + 1) + '</td><td>' + esc(t.title) + (t.required ? '' : ' <i>(opt.)</i>') +
+      '</td><td class="st">' + tr(STATUS_TXT[t.status]) + '</td><td class="dt">' + esc(t.detail || '') + '</td></tr>').join('');
+    const passed = r.tests.filter(t => t.status === 'pass').length;
     $('printReport').innerHTML =
-      tr('<h1>Rapport de test manette ') + esc(d.model || 'DualSense') + '</h1>' +
-      '<p>' + new Date(r.date).toLocaleString() + (r.unit ? ', <b>' + esc(r.unit) + '</b>' : '') + '</p>' +
-      '<div class="pverdict ' + computeVerdict().key + '">' + esc(r.verdict) + '</div><p>' + esc(r.verdictDetail) + '</p>' +
-      (r.notes ? tr('<p><b>Notes :</b> ') + esc(r.notes) + '</p>' : '') +
-      tr('<h2>Identité</h2><table>') + rows.map(x => '<tr><th>' + x[0] + '</th><td>' + esc(x[1] == null ? '-' : x[1]) + '</td></tr>').join('') + '</table>' +
-      (usageRows.length ? tr('<h2>Historique d\'usage (enregistré par la manette)</h2><table>') + usageRows.map(x => '<tr><th>' + x[0] + '</th><td>' + esc(x[1]) + '</td></tr>').join('') + '</table>' : '') +
-      tr('<h2>Résultats</h2><table><tr><th>Test</th><th>Résultat</th><th>Détail</th></tr>') +
-      r.tests.map(t => '<tr><td>' + esc(t.title) + (t.required ? '' : ' (opt.)') + '</td><td class="st ' + t.status + '">' + tr(STATUS_TXT[t.status]) + '</td><td>' + esc(t.detail) + '</td></tr>').join('') +
-      tr('</table><p class="small">Généré par ZherPad v') + VERSION + ', https://github.com/anzher44/zherpad</p>';
-    window.print();
+      '<header class="rp-head"><div class="rp-brand"><img src="icon.svg" alt=""><div><b>ZherPad</b><span>' + tr('Rapport de contrôle de manette') + '</span></div></div>' +
+      '<div class="rp-meta">' + tr('Rapport n°') + ' <b>' + rid + '</b><br>' + new Date(r.date).toLocaleString() + (r.unit ? '<br>' + esc(r.unit) : '') + '</div></header>' +
+      '<section class="rp-top"><img class="rp-pad" id="rpPad" src="' + padImage(f.colorCode) + '" alt="">' +
+      '<div class="rp-verdict ' + v.key + '"><span>' + tr('Résultat') + '</span><strong>' + esc(v.label) + '</strong><p>' + esc(v.detail) + '</p>' +
+      '<p class="rp-count">' + passed + ' / ' + r.tests.length + ' ' + tr('tests réussis') + '</p></div></section>' +
+      '<section class="rp-cols"><div><h2>' + tr('Identité') + '</h2><table>' + ident + '</table></div>' +
+      '<div><h2>' + tr('Usage enregistré par la manette') + '</h2><table>' + usage + '</table></div></section>' +
+      '<h2>' + tr('Résultats des tests') + '</h2><table class="rp-tests"><thead><tr><th class="n">#</th><th>' + tr('Test') + '</th><th>' + tr('Résultat') + '</th><th>' + tr('Mesure') + '</th></tr></thead><tbody>' + tests + '</tbody></table>' +
+      (r.notes ? '<p class="rp-notes"><b>' + tr('Notes') + ' :</b> ' + esc(r.notes) + '</p>' : '') +
+      '<footer class="rp-sign"><div>' + tr('Contrôlé par') + '</div><div>' + tr('Date') + '</div><div>' + tr('Signature') + '</div></footer>' +
+      '<p class="rp-foot">' + tr('Mesures automatiques ZherPad v') + VERSION + '. ' + tr('Seuils et sources : github.com/anzher44/zherpad') + '</p>';
+    const img = $('rpPad');
+    const go = () => window.print();
+    if (img.complete) go(); else { img.onload = go; img.onerror = go; }
   });
 
   renderTests();
@@ -1166,6 +1201,7 @@
     $('connStatus').textContent = ds.device ? tr('Connectée : ') + ds.model : tr('Non connectée');
     renderInfo();
     renderFeatures();
+    renderHero();
     if (ds.factory) { renderFactory(); checkSeenBefore(); }
     if (ds.telemetry || ds.telemetryRaw) renderTelemetry();
     buildButtonGrid();

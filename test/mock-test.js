@@ -242,6 +242,18 @@ const MOCK = `
   console.log('cal commands:', (await page.evaluate(() => window.__calLog.filter(x => !x.startsWith('80:1,') && !x.startsWith('80:9,') && !x.startsWith('80:4,') && !x.startsWith('80:5,') && !x.startsWith('80:7,') && !x.startsWith('80:12,') && !x.startsWith('80:112,')))).join(' | '));
   if (process.argv[2]) await page.screenshot({ path: process.argv[2] + '/cal.png', fullPage: true });
 
+  // One-page PDF report
+  if (process.argv[2]) {
+    await page.click('.tab[data-tab=val]');
+    await page.fill('#unitLabel', 'Manette 12, client Dupont');
+    await page.click('#btnPrint');
+    await page.waitForTimeout(500);
+    await page.pdf({ path: process.argv[2] + '/report.pdf', format: 'A4', preferCSSPageSize: true, printBackground: true });
+    console.log('pdf pages:', (require('fs').readFileSync(process.argv[2] + '/report.pdf', 'latin1').match(/\/Type\s*\/Page[^s]/g) || []).length);
+    await page.click('.tab[data-tab=info]');
+    await page.screenshot({ path: process.argv[2] + '/hero.png', clip: { x: 0, y: 0, width: 1300, height: 420 } });
+  }
+
   // Before / after comparison with an exported report
   await page.click('.tab[data-tab=val]');
   const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btnExportJson')]);

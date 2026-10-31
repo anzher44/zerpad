@@ -16,7 +16,8 @@ The interface is available in French and English (button in the top bar, detecte
 - Counterfeit detection
 - Stick drift with noise and a recommended deadzone, plus a return-to-center test
 - Stick recalibration (center and range)
-- Guided validation with a PDF or JSON report
+- Guided validation with a one-page PDF report (or JSON)
+- The controller is shown in its own color, detected from the serial number
 - Before / after comparison with an earlier JSON report
 - Works offline once loaded, and can be installed as an app
 
@@ -86,6 +87,7 @@ Plain HTML, CSS and JavaScript, no build step.
 - `app.js`: interface, tests and reports
 - `i18n.js`, `i18n-en.js`: French / English interface
 - `calibration.js`: calibration steps
+- `assets/controllers/`: controller illustrations per edition (Gamepad Asset Pack, MIT)
 - `sw.js`, `manifest.webmanifest`: offline support
 - `test/mock-test.js`: end-to-end test with a simulated controller (Playwright)
 
@@ -103,7 +105,7 @@ node test/mock-test.js
 
 ## Acknowledgements
 
-Thanks to the authors of the Linux `hid-playstation` driver, [daidr/dualsense-tester](https://github.com/daidr/dualsense-tester) and [dualshock-tools](https://github.com/dualshock-tools/dualshock-tools.github.io) for documenting the DualSense protocol. License notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Controller illustrations from the [Gamepad Asset Pack](https://github.com/AL2009man/Gamepad-Asset-Pack) by Al. Lopez (MIT). Thanks to the authors of the Linux `hid-playstation` driver, [daidr/dualsense-tester](https://github.com/daidr/dualsense-tester) and [dualshock-tools](https://github.com/dualshock-tools/dualshock-tools.github.io) for documenting the DualSense protocol. License notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## License
 
