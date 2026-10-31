@@ -1,7 +1,7 @@
 /* app.js — interface, visualisation et tests de validation. */
 (function () {
   'use strict';
-  const VERSION = '1.0.0';
+  const VERSION = '1.1.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -329,7 +329,7 @@
 
   // ---- Audio de la manette (USB) ----
   let audioOut = null, audioIn = null, micStream = null, micRAF = 0;
-  const isPadAudio = d => /wireless controller|dualsense/i.test(d.label);
+  const isPadAudio = d => /wireless controller|dualsense|054c:0ce6|054c:0df2/i.test(d.label);
   $('btnAudioScan').addEventListener('click', scanAudio);
   async function scanAudio() {
     try {
@@ -342,10 +342,11 @@
       $('audioStatus').textContent = 'Haut-parleur : ' + (audioOut ? audioOut.label : 'non trouvé') + ' · Micro : ' + (audioIn ? audioIn.label : 'non trouvé');
       $('btnSpeaker').disabled = !audioOut;
       $('btnMic').disabled = !audioIn;
-      return { out: !!audioOut, in: !!audioIn };
+      const names = kind => devs.filter(d => d.kind === kind).map(d => d.label || '(sans nom)');
+      return { out: !!audioOut, in: !!audioIn, outputs: names('audiooutput'), inputs: names('audioinput') };
     } catch (e) {
       $('audioStatus').textContent = 'Accès audio refusé ou indisponible : ' + e.message;
-      return { out: false, in: false };
+      return { out: false, in: false, error: e.name + ' : ' + e.message };
     }
   }
   async function beepPad() {
@@ -402,7 +403,9 @@
       id, title, instructions, kind: 'manual',
       async start(t) {
         t.status = 'running'; t.detail = 'En cours… puis confirmez ci-dessous.'; renderTests();
-        try { await action(t); } catch (e) { t.detail = 'Erreur : ' + e.message; }
+        let fail = null;
+        try { fail = await action(t); } catch (e) { fail = 'Erreur : ' + e.message; }
+        if (typeof fail === 'string') { t.detail = fail; return finish(t, false); }
         t.awaitingConfirm = true; renderTests();
       },
     }, opts));
@@ -620,8 +623,9 @@
       manual('speaker', 'Haut-parleur interne (USB)', 'USB uniquement. Cliquez « Lancer » (autorisez le micro si demandé) : un bip doit sortir du haut-parleur de la manette.',
         async t => {
           const r = await scanAudio();
-          if (!r.out) { t.detail = 'Haut-parleur de la manette introuvable (Bluetooth ? pilote audio ?). Vous pouvez passer ce test.'; return; }
-          await beepPad(); await sleep(200); await beepPad();
+          if (!r.out) return 'Haut-parleur de la manette introuvable. ' + audioDiag(r, r.outputs, 'Sorties');
+          if (!await beepPad()) return 'Impossible de choisir la sortie audio dans ce navigateur (utilisez Chrome/Edge récent).';
+          await sleep(200); await beepPad();
         }, { required: false }),
       T({
         id: 'mic', title: 'Microphone interne (USB)', required: false, kind: 'auto',
@@ -629,7 +633,7 @@
         async start(t) {
           t.status = 'running'; t.detail = 'Recherche du micro…'; renderTests();
           const r = await scanAudio();
-          if (!r.in) { t.detail = 'Micro de la manette introuvable (Bluetooth ?). Vous pouvez passer ce test.'; return finish(t, false); }
+          if (!r.in) { t.detail = 'Micro de la manette introuvable. ' + audioDiag(r, r.inputs, 'Micros'); return finish(t, false); }
           try { await toggleMic(true); } catch (e) { t.detail = 'Erreur micro : ' + e.message; return finish(t, false); }
           t.data = { t0: performance.now() }; t.detail = 'Parlez maintenant…'; micPeak = 0; renderTestBody(t);
         },
@@ -647,6 +651,14 @@
       }),
     ];
     renderTests();
+  }
+
+  // Explique pourquoi l'audio de la manette n'a pas été trouvé
+  function audioDiag(r, list, what) {
+    if (r.error) return 'Accès audio refusé (' + r.error + ') : autorisez le micro pour ce site (icône à gauche de l\'adresse).';
+    if (ds.transport === 'bt') return 'Connexion Bluetooth : l\'audio de la manette n\'existe qu\'en USB.';
+    return what + ' vus par le navigateur : ' + (list && list.length ? list.join(' ; ') : 'aucun') +
+      '. Vérifiez dans les paramètres son de l\'ordinateur que le périphérique « Wireless Controller » est activé.';
   }
 
   async function trigSequence(key) {
@@ -689,7 +701,7 @@
         mk('✘ Ne fonctionne pas', 'bad', () => { t.detail = 'Signalé défectueux par l\'opérateur'; finish(t, false); });
         mk('Relancer', 'ghost', () => t.start(t));
       } else if (t.status === 'running') {
-        if (t.kind === 'auto') mk('Abandonner (échec)', 'bad', () => { t.detail += ' — abandonné'; finish(t, false); });
+        if (t.kind === 'auto' && t.required) mk('Abandonner (échec)', 'bad', () => { t.detail += ' — abandonné'; finish(t, false); });
         mk('Passer', 'ghost', () => { t.status = 'skip'; touchShowGrid = false; renderTests(); });
       } else {
         mk(t.status === 'pending' ? 'Lancer' : 'Relancer', 'primary', () => {
