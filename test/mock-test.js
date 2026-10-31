@@ -69,6 +69,7 @@ const MOCK = `
       dv.setUint32(27, (performance.now()*3000)>>>0, true);
       for (let k=0;k<2;k++){ const t=s.touch[k]; const p=32+k*4;
         u[p] = t ? k : 0x80; if (t){ u[p+1]=t[0]&0xff; u[p+2]=((t[0]>>8)&0x0f)|((t[1]&0x0f)<<4); u[p+3]=t[1]>>4; } }
+      u[41]=s.trigR||0; u[42]=s.trigL||0;
       u[52]=s.status; u[53]=s.plug;
       const ev = new Event('inputreport'); ev.reportId=1; ev.data=new DataView(u.buffer); ev.device=this;
       this.dispatchEvent(ev);
@@ -184,6 +185,14 @@ const MOCK = `
   console.log('sent reports (last 3):', JSON.stringify(last.map(r => [r[0], r[1].length, r[1].slice(0, 4), r[1].slice(38, 47)])));
   await page.click('#test-rumbleL button.ok');
   console.log('rumbleL:', await status('rumbleL'));
+
+  // Adaptive trigger L2 with simulated motor feedback
+  await launch('adaptL');
+  for (let k = 0; k < 6; k++) { await set({ l2: 200, b1: 4, trigL: 0x20 + k }); await page.waitForTimeout(150); }
+  await set({ l2: 0, b1: 0, trigL: 0 });
+  await page.waitForSelector('#test-adaptL button.ok', { timeout: 15000 });
+  console.log('adaptL detail:', await page.textContent('#test-adaptL .detail'));
+  await page.click('#test-adaptL button.ok');
 
   // Trigger effect bytes
   const fx = await page.evaluate(() => [DSUtil.TriggerFx.feedback(1,8), DSUtil.TriggerFx.weapon(3,6,8), DSUtil.TriggerFx.vibration(1,8,25)]);

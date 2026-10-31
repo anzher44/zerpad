@@ -791,9 +791,9 @@
       manual('rumbleR', 'Vibration du moteur droit (léger)', 'Cliquez « Lancer » : le côté droit doit vibrer (vibration plus fine) pendant 1,5 s.',
         async () => { ds.update({ motorL: 0, motorR: 255 }); await sleep(1500); ds.update({ motorR: 0 }); }),
       manual('adaptL', 'Gâchette adaptative L2', 'Cliquez « Lancer », puis appuyez sur L2 : forte résistance, puis point dur « arme », puis vibration (≈ 3 s chacun). La gâchette doit revenir libre ensuite.',
-        async () => { await trigSequence('trigL'); }),
+        t => trigSequence(t, 'trigL')),
       manual('adaptR', 'Gâchette adaptative R2', 'Cliquez « Lancer », puis appuyez sur R2 : forte résistance, puis point dur « arme », puis vibration (≈ 3 s chacun).',
-        async () => { await trigSequence('trigR'); }),
+        t => trigSequence(t, 'trigR')),
       manual('lightbar', 'Barre lumineuse (RVB)', 'Cliquez « Lancer » : les bandes autour du pavé tactile passent en ROUGE, VERT, BLEU puis BLANC. Chaque couleur doit être nette, des deux côtés.',
         async () => {
           for (const [r, g, b] of [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 255]]) { ds.update({ r, g, b }); await sleep(1200); }
@@ -847,11 +847,29 @@
       '. Vérifiez dans les paramètres son de l\'ordinateur que le périphérique « Wireless Controller » est activé.';
   }
 
-  async function trigSequence(key) {
-    ds.update({ [key]: TriggerFx.feedback(1, 8) }); await sleep(3000);
-    ds.update({ [key]: TriggerFx.weapon(3, 6, 8) }); await sleep(3000);
-    ds.update({ [key]: TriggerFx.vibration(1, 8, 25) }); await sleep(3000);
-    ds.update({ [key]: TriggerFx.off() });
+  // Runs the three trigger effects and records the motor feedback byte
+  // (report bytes 41/42, see Ohjurot/DualSense-Windows) while the trigger is pressed.
+  async function trigSequence(t, key) {
+    const left = key === 'trigL';
+    const seen = new Set();
+    let pressed = 0;
+    const on = e => {
+      const st = e.detail;
+      if ((left ? st.l2 : st.r2) > 30) { pressed++; seen.add(left ? st.trigStatusL : st.trigStatusR); }
+    };
+    ds.addEventListener('state', on);
+    try {
+      ds.update({ [key]: TriggerFx.feedback(1, 8) }); await sleep(3000);
+      ds.update({ [key]: TriggerFx.weapon(3, 6, 8) }); await sleep(3000);
+      ds.update({ [key]: TriggerFx.vibration(1, 8, 25) }); await sleep(3000);
+    } finally {
+      ds.update({ [key]: TriggerFx.off() });
+      ds.removeEventListener('state', on);
+    }
+    t.data = { pressedSamples: pressed, feedbackStates: [...seen].map(v => '0x' + hex(v)) };
+    if (!pressed) t.detail = 'Gâchette non pressée pendant le test. Confirmez quand même ou relancez.';
+    else if (seen.size > 1) t.detail = 'Retour moteur détecté (' + seen.size + ' états différents). Confirmez ce que vous avez senti.';
+    else t.detail = 'Aucun retour moteur lu (valeur fixe 0x' + hex([...seen][0]) + '). Confirmez ce que vous avez senti.';
   }
 
   function finish(t, ok) {

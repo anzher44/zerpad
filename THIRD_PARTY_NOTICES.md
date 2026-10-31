@@ -66,4 +66,5 @@ SOFTWARE.
 
 - Sufxx/dualsense-doctor (MIT): return-to-center (snapback) test, noise (jitter) measurement.
 - Teerasak-Mairoddee/dualsense-tester: recommended deadzone after the drift test.
+- Ohjurot/DualSense-Windows (MIT): adaptive trigger feedback bytes in the input report.
 - Linux driver `hid-playstation.c`: input/output report format, IMU calibration.
