@@ -25,6 +25,9 @@
     catch (e) { log('Connexion annulée ou impossible : ' + e.message); }
   });
   $('btnDisconnect').addEventListener('click', () => ds.close());
+  $('btnPowerOff').addEventListener('click', async () => {
+    try { await ds.powerOff(); log('Manette éteinte'); } catch (e) { log('Extinction impossible : ' + e.message); }
+  });
 
   if (DualSense.supported) {
     // Reconnect automatically to an already authorized controller
@@ -68,13 +71,14 @@
   }
   ds.addEventListener('factory', () => { renderFactory(); checkSeenBefore(); });
   ds.addEventListener('telemetry', renderTelemetry);
-  ds.addEventListener('transport', () => { renderInfo(); });
+  ds.addEventListener('transport', () => { renderInfo(); $('btnPowerOff').hidden = ds.transport !== 'bt'; });
   ds.addEventListener('info', () => { renderInfo(); renderFeatures(); });
   ds.addEventListener('closed', () => {
     $('connStatus').textContent = 'Non connectée';
     $('connStatus').className = 'pill off';
     $('btnConnect').hidden = false;
     $('btnDisconnect').hidden = true;
+    $('btnPowerOff').hidden = true;
     $('bthint').hidden = true;
     $('seenBefore').hidden = true;
     $('cloneWarn').hidden = true;
@@ -308,7 +312,8 @@
       $('batFill').style.width = (st.battery.pct || 0) + '%';
       $('batFill').className = st.battery.pct != null && st.battery.pct <= 20 ? 'low' : '';
       $('i-charge').textContent = st.battery.label;
-      $('i-jack').textContent = (st.plug.headphones ? 'Casque détecté' : 'Rien de branché') + (st.plug.mic ? ', micro externe' : '') + '  (0x' + hex(st.plug.raw) + ')';
+      $('i-jack').textContent = (st.plug.headphones ? 'Casque détecté' : 'Rien de branché') + (st.plug.mic ? ', micro externe' : '') + (st.plug.micMuted ? ', micro coupé' : '') + '  (0x' + hex(st.plug.raw) + ')';
+      $('i-usb').textContent = 'données ' + (st.plug.usbData ? 'oui' : 'non') + ', alimentation ' + (st.plug.usbPower ? 'oui' : 'non');
       $('i-ts').textContent = st.sensorTs;
     }
     $('i-rate').textContent = ds.reportRate ? ds.reportRate + ' rapports/s (≈ ' + (1000 / ds.reportRate).toFixed(1) + ' ms)' : '-';
@@ -427,6 +432,9 @@
       case 'weapon': fx = TriggerFx.weapon(s, e, f); break;
       case 'vibration': fx = TriggerFx.vibration(s, f, hz); break;
       case 'rigid': fx = TriggerFx.rigid(); break;
+      case 'bow': fx = TriggerFx.bow(s, e, f, f); break;
+      case 'galloping': fx = TriggerFx.galloping(s, e, hz); break;
+      case 'machine': fx = TriggerFx.machine(s, e, f, hz); break;
       default: fx = TriggerFx.off();
     }
     const side = $('fxSide').value, patch = {};
@@ -460,6 +468,9 @@
   async function beepPad() {
     if (!audioOut) return false;
     const ctx = new AudioContext();
+    // Force the controller to play on its internal speaker (output path 3), as dualsensectl does
+    ds.update({ audioPath: 3, speakerVol: 0x64 });
+    await sleep(50);
     try {
       if (ctx.setSinkId) await ctx.setSinkId(audioOut.deviceId);
       else { $('audioStatus').textContent = 'Ce navigateur ne permet pas de choisir la sortie audio.'; return false; }
@@ -469,7 +480,7 @@
       o.start(); o.frequency.setValueAtTime(660, ctx.currentTime + 0.4); o.stop(ctx.currentTime + 1.2);
       await new Promise(r => setTimeout(r, 1300));
       return true;
-    } finally { ctx.close(); }
+    } finally { ctx.close(); ds.out.audioPath = null; }
   }
   $('btnSpeaker').addEventListener('click', beepPad);
   let micPeak = 0;
@@ -571,9 +582,11 @@
           t.status = 'running'; renderTests(); await sleep(500);
           const b = ds.state && ds.state.battery;
           if (!b) { t.detail = 'Aucune donnée batterie (mode simplifié ?)'; return finish(t, false); }
-          t.data = { percent: b.pct, state: b.label, raw: '0x' + hex(b.raw), transport: ds.transport };
+          const pl = ds.state.plug || {};
+          t.data = { percent: b.pct, state: b.label, raw: '0x' + hex(b.raw), transport: ds.transport, usbData: pl.usbData, usbPower: pl.usbPower };
           let ok = !b.error, note = '';
-          if (ds.transport === 'usb' && b.label === 'Sur batterie') { ok = false; note = ', branchée en USB mais ne charge pas (câble, port ou circuit de charge ?)'; }
+          if (ds.transport === 'usb') note += ', port USB : données ' + yesNo(pl.usbData) + ', alimentation ' + yesNo(pl.usbPower);
+          if (ds.transport === 'usb' && b.label === 'Sur batterie') { ok = false; note += ', branchée en USB mais ne charge pas (câble, port ou circuit de charge ?)'; }
           t.detail = (b.pct != null ? b.pct + ' %, ' : '') + b.label + note;
           finish(t, ok);
         },

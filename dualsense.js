@@ -71,6 +71,27 @@
         zones & 0xff, (zones >>> 8) & 0xff, (zones >>> 16) & 0xff, (zones >>> 24) & 0xff, 0, 0, freq, 0];
     },
     rigid() { return TriggerFx.feedback(0, 8); },
+    // Bow: tension between start (1-8) and end, then snaps back
+    bow(start, end, strength, snap) {
+      start = clamp(start, 1, 7); end = clamp(end, start + 1, 8);
+      const ss = (1 << start) | (1 << end);
+      const f = ((clamp(strength, 1, 8) - 1) & 7) | (((clamp(snap, 1, 8) - 1) & 7) << 3);
+      return [0x22, ss & 0xff, (ss >> 8) & 0xff, f, 0, 0, 0, 0, 0, 0, 0];
+    },
+    // Galloping: two "feet" taps per cycle between start and end
+    galloping(start, end, freq) {
+      start = clamp(start, 0, 8); end = clamp(end, start + 1, 9);
+      const ss = (1 << start) | (1 << end);
+      const feet = (4 & 7) | ((2 & 7) << 3);
+      return [0x23, ss & 0xff, (ss >> 8) & 0xff, feet, clamp(freq, 1, 255), 0, 0, 0, 0, 0, 0];
+    },
+    // Machine: alternates between two strengths
+    machine(start, end, strength, freq) {
+      start = clamp(start, 1, 8); end = clamp(end, start + 1, 9);
+      const ss = (1 << start) | (1 << end);
+      const f = (clamp(strength, 1, 8) - 1) & 7;
+      return [0x27, ss & 0xff, (ss >> 8) & 0xff, f | (1 << 3), clamp(freq, 1, 255), 10, 0, 0, 0, 0, 0];
+    },
   };
   function clamp(v, a, b) { v = Number(v) | 0; return v < a ? a : v > b ? b : v; }
 
@@ -94,6 +115,7 @@
       this._lightbarSetupDone = false;
       this.out = {
         motorL: 0, motorR: 0, r: 0, g: 64, b: 255,
+        audioPath: null, speakerVol: 0x64, headphoneVol: 0x7f,
         playerLeds: 0, ledBrightness: 0, muteLed: 0,
         trigL: TriggerFx.off(), trigR: TriggerFx.off(),
       };
@@ -382,6 +404,12 @@
     }
 
     /** Reboots the controller: unsaved (temporary) calibration is discarded. */
+    /** Turns the controller off. Only supported over Bluetooth. */
+    async powerOff() {
+      if (this.transport !== 'bt') throw new Error('extinction possible uniquement en Bluetooth');
+      await this._sendFeature(0x08, [2]);
+    }
+
     async reboot() {
       try { await this._sendFeature(0x80, [1, 1]); } catch (e) { /* the controller disconnects */ }
     }
@@ -431,6 +459,13 @@
       c[0] = (this.vibrationV2 ? 0 : 0x01) | 0x02 | 0x04 | 0x08;
       // valid_flag1: mic LED, lightbar, player LEDs
       c[1] = 0x01 | 0x04 | 0x10;
+      // Audio: output path (bits 4-5 of byte 7) and volumes, only once set by the caller
+      if (o.audioPath != null) {
+        c[0] |= 0x10 | 0x20 | 0x80;
+        c[4] = o.headphoneVol & 0x7f;
+        c[5] = o.speakerVol & 0xff;
+        c[7] = (o.audioPath & 0x03) << 4;
+      }
       c[2] = o.motorR & 0xff;   // right motor (light)
       c[3] = o.motorL & 0xff;   // left motor (strong)
       c[8] = o.muteLed & 0xff;
@@ -557,7 +592,7 @@
     }
     st.battery = { pct, label, raw: status, error: chg >= 0xa };
     const plug = u8[o + 53];
-    st.plug = { raw: plug, headphones: !!(plug & 0x01), mic: !!(plug & 0x02) };
+    st.plug = { raw: plug, headphones: !!(plug & 0x01), mic: !!(plug & 0x02), micMuted: !!(plug & 0x04), usbData: !!(plug & 0x08), usbPower: !!(plug & 0x10) };
     return st;
   }
 

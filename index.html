@@ -22,6 +22,7 @@
   <div class="conn">
     <span id="connStatus" class="pill off">Non connectée</span>
     <button id="btnConnect" class="primary">Connecter la manette</button>
+    <button id="btnPowerOff" class="ghost" hidden>Éteindre</button>
     <button id="btnDisconnect" class="ghost" hidden>Déconnecter</button>
   </div>
 </header>
@@ -74,6 +75,7 @@
         <tr><th>Batterie</th><td><div class="bat"><div id="batFill"></div></div> <span id="i-bat">-</span></td></tr>
         <tr><th>Charge</th><td id="i-charge">-</td></tr>
         <tr><th>Prise jack</th><td id="i-jack">-</td></tr>
+        <tr><th>Port USB-C</th><td id="i-usb">-</td></tr>
         <tr><th>Fréquence des rapports</th><td id="i-rate">-</td></tr>
         <tr><th>Mode de rapport</th><td id="i-mode">-</td></tr>
         <tr><th>Horodatage capteurs</th><td id="i-ts">-</td></tr>
@@ -166,6 +168,9 @@
             <option value="weapon">Arme (point dur)</option>
             <option value="vibration">Vibration</option>
             <option value="rigid">Rigide maximum</option>
+            <option value="bow">Arc (tension puis relâche)</option>
+            <option value="galloping">Galop</option>
+            <option value="machine">Machine (alternance)</option>
           </select>
         </label>
         <label class="row">Position début <input type="range" id="fxStart" min="0" max="9" value="2"><span id="fxStartV" class="mono">2</span></label>

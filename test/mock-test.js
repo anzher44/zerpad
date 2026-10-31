@@ -90,7 +90,7 @@ const MOCK = `
     window.__tel = blk;
   })();
   window.__calLog = [];
-  window.__pad = { lx:128, ly:127, rx:129, ry:128, l2:0, r2:0, b0:8, b1:0, b2:0, gyro:[2,-3,1], accel:[0,8192,0], touch:[null,null], status:0x17, plug:0 };
+  window.__pad = { lx:128, ly:127, rx:129, ry:128, l2:0, r2:0, b0:8, b1:0, b2:0, gyro:[2,-3,1], accel:[0,8192,0], touch:[null,null], status:0x17, plug:0x18 };
   const dev = new Dev(); window.__dev = dev;
   const hid = new EventTarget();
   hid.requestDevice = async () => [dev];
