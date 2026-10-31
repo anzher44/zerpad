@@ -70,4 +70,8 @@ SOFTWARE.
 - nowrep/dualsensectl (GPL-3.0, protocol facts only): audio output path and volume fields,
   Bluetooth power-off feature report, bow/galloping/machine trigger effect layouts.
 - DualSenseClient (GPL-3.0, protocol facts only): status bits of input byte 53 (mic muted, USB data, USB power).
+- mRbRaIn0/DualShock-Controller-Toolkit (MIT): cross-check of thresholds, return-to-center settle time,
+  movement detection during the rest test, packet loss limit, rumble refresh on recent firmwares.
+- SekaPsyka/GamepadTester (MIT): button bounce (chatter) detection.
+- remteh-by/dualsense-tester (proprietary, idea only, no code read into ZherPad): before/after report comparison.
 - Linux driver `hid-playstation.c`: input/output report format, IMU calibration.

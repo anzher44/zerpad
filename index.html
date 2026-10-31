@@ -103,6 +103,7 @@
     <div class="card">
       <h2>Boutons</h2>
       <div id="btnGrid" class="btngrid"></div>
+      <p id="chatterTxt" class="small">Rebonds de boutons : aucun</p>
     </div>
     <div class="card">
       <h2>Sticks</h2>
@@ -208,6 +209,8 @@
     <div class="actions">
       <button id="btnResetTests" class="ghost">Recommencer</button>
       <button id="btnExportJson" class="ghost">Exporter JSON</button>
+      <button id="btnCompare" class="ghost">Comparer avec un rapport</button>
+      <input type="file" id="compareFile" accept=".json,application/json" hidden>
       <button id="btnPrint" class="primary">Rapport PDF / imprimer</button>
     </div>
   </div>
@@ -216,6 +219,11 @@
     <label class="row">Notes <input type="text" id="unitNotes" placeholder="état visuel, remarques…"></label>
   </div>
   <div id="testList" class="tests"></div>
+  <div id="compareCard" class="card" hidden>
+    <h2>Comparaison avant / après</h2>
+    <p id="compareInfo" class="small"></p>
+    <table class="kv cmp"><tbody id="compareBody"></tbody></table>
+  </div>
   <div class="card">
     <h2>Historique (ce navigateur)</h2>
     <div id="history" class="small">-</div>

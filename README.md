@@ -17,6 +17,7 @@ The interface is available in French and English (button in the top bar, detecte
 - Stick drift with noise and a recommended deadzone, plus a return-to-center test
 - Stick recalibration (center and range)
 - Guided validation with a PDF or JSON report
+- Before / after comparison with an earlier JSON report
 - Works offline once loaded, and can be installed as an app
 
 ## Requirements
@@ -36,16 +37,16 @@ The interface is available in French and English (button in the top bar, detecte
 
 | # | Test | Pass criterion |
 |---|------|----------------|
-| 1 | Communication | input reports, firmware, MAC and IMU calibration readable |
+| 1 | Communication | over 100 reports/s, under 5 % lost reports, firmware, MAC and IMU calibration readable |
 | 2 | Authenticity | no counterfeit signs, serial number readable |
 | 3 | Battery | no charging error, charges when plugged in |
-| 4 | Buttons | every button pressed and released |
+| 4 | Buttons | every button pressed and released, no switch bounce |
 | 5 | Stick drift | resting offset 6 % or less, noise 1.5 % or less |
 | 6 | Stick range | full travel on both axes, contour 90 %, mean circularity error under 15 % |
-| 7 | Return to center | 5 releases per stick, back within 8 %, median overshoot under 18 % |
+| 7 | Return to center | 5 releases per stick, back within 8 %, median overshoot under 18 %, settle time shown |
 | 8 | L2 / R2 | full travel and return to rest |
 | 9 | Touchpad | 95 % of the surface and two fingers at once |
-| 10 | Motion at rest | gyro under 2 °/s, noise under 1 °/s, gravity between 0.95 and 1.05 g |
+| 10 | Motion at rest | gyro under 3 °/s, noise under 1 °/s, gravity between 0.92 and 1.08 g, restarts if the controller moves |
 | 11 | Motion | each gyro axis over 150 °/s, each accelerometer axis reaches 0.7 g |
 | 12-18 | Rumble, adaptive triggers, lightbar, LEDs | confirmed by the operator |
 | 19-21 | Speaker, microphone, headphone jack | optional |
@@ -56,13 +57,15 @@ The thresholds are based on published measurements, not guesses:
 
 | Test | Threshold | Reference |
 |------|-----------|-----------|
-| Stick resting offset | 6 % max (1.25 % = within one step, 3.5 % = mild drift) | [sense-calibrator](https://github.com/martino-vigiani/sense-calibrator) tiers built from real controllers; [Gamepadla](https://gamepadla.com/sony-dualsense.html) measured 2.7 % and 5.1 % centering on a new DualSense |
+| Stick resting offset | 6 % max (1.25 % = within one step, 3.5 % = mild drift) | [sense-calibrator](https://github.com/martino-vigiani/sense-calibrator) tiers built from real controllers; [Gamepadla](https://gamepadla.com/sony-dualsense.html) measured 2.7 % and 5.1 % centering on a new DualSense; [Controller Toolkit](https://github.com/mRbRaIn0/DualShock-Controller-Toolkit) rates 5 % slight and 8 % moderate drift |
 | Stick noise | 1.5 % max (95th percentile) | sense-calibrator uses the same limit to flag a worn potentiometer |
-| Circularity | mean error under 15 % | Gamepadla measured 7.8 % and 8.2 % on a new DualSense |
-| Return to center | 8 % max, median overshoot under 18 % | overshoot bands from [dualsense-doctor](https://github.com/Sufxx/dualsense-doctor); return limit set above the centering measured on new units |
-| Gyroscope at rest | mean under 2 °/s, noise under 1 °/s | about 4× the values measured on a working controller (0.56 °/s, 0.25 °/s) |
-| Accelerometer at rest | 0.95 to 1.05 g | gravity is 1 g; a working controller read 1.007 g |
-| Report rate | over 100 reports/s | a DualSense over USB reports about 250 times per second |
+| Circularity | mean error under 15 % | Gamepadla measured 7.8 % and 8.2 % on a new DualSense; Controller Toolkit warns at the same 15 % |
+| Return to center | 8 % max, median overshoot under 18 %, slow above 300 ms | overshoot bands from [dualsense-doctor](https://github.com/Sufxx/dualsense-doctor); settle time and 2 % settle band from Controller Toolkit |
+| L2 / R2 | rest 5 or less, full press 250 or more | same values in Controller Toolkit |
+| Gyroscope at rest | mean under 3 °/s, noise under 1 °/s | a working controller read 0.56 °/s and 0.25 °/s; Controller Toolkit warns at 1 °/s noise and 5 °/s bias |
+| Accelerometer at rest | 0.92 to 1.08 g, movement above 0.02 g noise | a working controller read 1.007 g; Controller Toolkit allows 0.12 g and uses the same 0.02 g movement limit |
+| Report rate and loss | over 100 reports/s, under 5 % lost | a DualSense over USB reports about 250 times per second; Controller Toolkit uses the same 100 Hz minimum and 5 % loss limit |
+| Button bounce | a release and new press within 25 ms | faster than any finger; idea from [GamepadTester](https://github.com/SekaPsyka/GamepadTester) |
 
 These values will be refined as more controllers are measured. If a controller you know is good fails a test, please open an issue with the JSON report.
 

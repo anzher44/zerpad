@@ -109,6 +109,7 @@
       this.lastRaw = null;
       this.simpleMode = false;
       this.reportCount = 0;
+      this.seqStats = { n: 0, ones: 0, lost: 0 };   // input report sequence counter, used for packet loss
       this.reportRate = 0;
       this._rateT0 = 0; this._rateN = 0;
       this._btSeq = 0;
@@ -164,6 +165,7 @@
         this.out.trigL = TriggerFx.off(); this.out.trigR = TriggerFx.off();
         await this.sendOutput();
       } catch (e) { /* ignore */ }
+      if (this._rumbleTimer) { clearInterval(this._rumbleTimer); this._rumbleTimer = null; }
       this.device.removeEventListener('inputreport', this._onInput);
       try { await this.device.close(); } catch (e) { /* ignore */ }
       this.device = null;
@@ -440,6 +442,15 @@
       }
       st.reportId = id;
       st.time = performance.now();
+      if (st.seq != null) {
+        if (this._lastSeq != null) {
+          const delta = (st.seq - this._lastSeq + 256) & 0xff;
+          this.seqStats.n++;
+          if (delta === 1) this.seqStats.ones++;
+          else if (delta > 1 && delta < 128) this.seqStats.lost += delta - 1;
+        }
+        this._lastSeq = st.seq;
+      }
       this.state = st;
       this.lastRaw = { id, data: u8.slice() };
       this.reportCount++;
@@ -483,7 +494,14 @@
 
     // Coalesce updates (one report per frame)
     update(patch) {
+      const wasRumbling = !!(this.out.motorL || this.out.motorR);
       Object.assign(this.out, patch);
+      // Recent firmwares (rumble v2) stop rumbling unless the report is refreshed, so resend it
+      // every 100 ms while a motor runs, and send the stop twice.
+      const rumbling = !!(this.out.motorL || this.out.motorR);
+      if (rumbling && !this._rumbleTimer) this._rumbleTimer = setInterval(() => this.sendOutput(), 100);
+      if (!rumbling && this._rumbleTimer) { clearInterval(this._rumbleTimer); this._rumbleTimer = null; }
+      if (wasRumbling && !rumbling) setTimeout(() => this.sendOutput(), 60);
       if (this._sendQueued) return;
       this._sendQueued = true;
       setTimeout(() => { this._sendQueued = false; this.sendOutput(); }, 10);

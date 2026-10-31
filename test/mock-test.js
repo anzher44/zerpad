@@ -62,6 +62,7 @@ const MOCK = `
       const s = window.__pad;
       const u = new Uint8Array(63);
       u[0]=s.lx; u[1]=s.ly; u[2]=s.rx; u[3]=s.ry; u[4]=s.l2; u[5]=s.r2;
+      this.seq = ((this.seq || 0) + 1) & 0xff; u[6] = this.seq;
       u[7]=s.b0; u[8]=s.b1; u[9]=s.b2;
       const dv=new DataView(u.buffer);
       s.gyro.forEach((v,i)=>dv.setInt16(15+i*2, v, true));
@@ -115,7 +116,7 @@ const MOCK = `
 
   const set = (patch) => page.evaluate(p => Object.assign(window.__pad, p), patch);
   const status = id => page.evaluate(id => document.querySelector('#test-' + id + ' .badge').textContent + ' | ' + document.querySelector('#test-' + id + ' .detail').textContent, id);
-  const launch = id => page.click('#test-' + id + ' button.primary');
+  const launch = id => page.click('#test-' + id + ' .tact button >> nth=0');
   await page.click('.tab[data-tab=val]');
 
   await page.waitForFunction(() => /Sony d'origine|Suspecte/.test(document.getElementById('factoryBody').textContent), null, { timeout: 15000 });
@@ -135,6 +136,18 @@ const MOCK = `
   const seq = [{b0:0},{b0:2},{b0:4},{b0:6},{b0:0x18},{b0:0x28},{b0:0x48},{b0:0x88},{b1:1},{b1:2},{b1:4},{b1:8},{b1:0x10},{b1:0x20},{b1:0x40},{b1:0x80},{b2:1},{b2:2},{b2:4}];
   for (const s of seq) { await set(Object.assign({b0:8,b1:0,b2:0}, s)); await page.waitForTimeout(40); await set({b0:8,b1:0,b2:0}); await page.waitForTimeout(40); }
   console.log('buttons:', await status('buttons'));
+
+  // bounce check: cross released then pressed again 8 ms later must fail the buttons test
+  await launch('buttons');
+  await page.evaluate(() => new Promise(res => {
+    const P = window.__pad, seq = [[0, 0x28], [40, 0x08], [48, 0x28], [120, 0x08]];
+    seq.forEach(([t, v]) => setTimeout(() => { P.b0 = v; }, t));
+    setTimeout(res, 200);
+  }));
+  for (const s2 of [{b0:0},{b0:2},{b0:4},{b0:6},{b0:0x18},{b0:0x48},{b0:0x88},{b1:1},{b1:2},{b1:4},{b1:8},{b1:0x10},{b1:0x20},{b1:0x40},{b1:0x80},{b2:1},{b2:2},{b2:4}]) {
+    await set(Object.assign({b0:8,b1:0,b2:0}, s2)); await page.waitForTimeout(40); await set({b0:8,b1:0,b2:0}); await page.waitForTimeout(40);
+  }
+  console.log('buttons with bounce:', await status('buttons'));
 
   // 4 drift
   await launch('drift'); await page.waitForTimeout(3500); console.log('drift:', await status('drift'));
@@ -228,6 +241,14 @@ const MOCK = `
   console.log('cal save:', (await page.textContent('#calStep')).slice(0, 60));
   console.log('cal commands:', (await page.evaluate(() => window.__calLog.filter(x => !x.startsWith('80:1,') && !x.startsWith('80:9,') && !x.startsWith('80:4,') && !x.startsWith('80:5,') && !x.startsWith('80:7,') && !x.startsWith('80:12,') && !x.startsWith('80:112,')))).join(' | '));
   if (process.argv[2]) await page.screenshot({ path: process.argv[2] + '/cal.png', fullPage: true });
+
+  // Before / after comparison with an exported report
+  await page.click('.tab[data-tab=val]');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#btnExportJson')]);
+  const file = await dl.path();
+  await page.setInputFiles('#compareFile', file);
+  await page.waitForTimeout(300);
+  console.log('compare:', (await page.textContent('#compareBody')).replace(/\s+/g, ' ').slice(0, 220));
 
   // Language switch
   await page.click('#btnLang');

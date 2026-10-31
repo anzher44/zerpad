@@ -283,8 +283,26 @@
   const touchTrails = [[], []];
 
   // Incoming state
+  // Switch bounce ("chatter"): a release followed by a press less than 25 ms later cannot
+  // come from a finger (fast tapping is above 60 ms per cycle), it is a worn contact.
+  const CHATTER_MS = 25;
+  const btnTrack = {};
+  let chatter = {};
+  function trackButtons(st) {
+    for (const k in st.buttons) {
+      const b = btnTrack[k] || (btnTrack[k] = { down: false, up: 0 });
+      const down = !!st.buttons[k];
+      if (down && !b.down && b.up && st.time - b.up < CHATTER_MS) chatter[k] = (chatter[k] || 0) + 1;
+      if (!down && b.down) b.up = st.time;
+      b.down = down;
+    }
+  }
+  const btnLabel = k => tr((buttonList().find(b => b[0] === k) || [k, k])[1]);
+  const chatterText = c => Object.keys(c).length ? Object.entries(c).map(([k, n]) => btnLabel(k) + ' ×' + n).join(', ') : tr('aucun');
+
   ds.addEventListener('state', e => {
     const st = e.detail;
+    trackButtons(st);
     updateStick(stickStats.L, st.lx, st.ly);
     updateStick(stickStats.R, st.rx, st.ry);
     if (st.gyro) { motionHist.push(st.gyro.slice()); if (motionHist.length > 320) motionHist.shift(); }
@@ -325,6 +343,7 @@
       $('i-usb').textContent = tr('données ') + yesNo(st.plug.usbData) + tr(', alimentation ') + yesNo(st.plug.usbPower);
       $('i-ts').textContent = st.sensorTs;
     }
+    $('chatterTxt').textContent = tr('Rebonds de boutons : ') + chatterText(chatter);
     $('i-rate').textContent = ds.reportRate ? ds.reportRate + tr(' rapports/s (≈ ') + (1000 / ds.reportRate).toFixed(1) + ' ms)' : '-';
     $('i-mode').textContent = ds.simpleMode ? tr('Simplifié (Bluetooth sans capteurs)') : tr('Complet (rapport 0x') + hex(st.reportId) + ')';
     if (now - lastRawDraw > 100 && ds.lastRaw) {
@@ -545,21 +564,26 @@
     tests = [
       T({
         id: 'conn', title: 'Communication & identité',
-        instructions: 'Vérifie que la manette répond : rapports d\'entrée, firmware, adresse MAC, calibration.',
+        instructions: 'Vérifie que la manette répond : fréquence et perte des rapports, firmware, adresse MAC, calibration. Exige plus de 100 rapports/s et moins de 5 % de pertes.',
         kind: 'auto',
         async start(t) {
           t.status = 'running'; renderTests();
-          const c0 = ds.reportCount; await sleep(1200);
+          const c0 = ds.reportCount, q0 = { ...ds.seqStats }; await sleep(1200);
           const n = ds.reportCount - c0;
+          const qn = ds.seqStats.n - q0.n, qOnes = ds.seqStats.ones - q0.ones, qLost = ds.seqStats.lost - q0.lost;
+          // the counter is only trusted when it mostly advances by one per report
+          const lossPct = qn > 20 && qOnes / qn > 0.5 ? qLost / (qLost + qn) * 100 : null;
+          const okLoss = lossPct == null || lossPct < 5;
           const okFw = ds.info.fwVersion != null, okMac = !!ds.info.mac, okCal = !!(ds.calib && ds.calib.valid);
           const okRate = n / 1.2 > 100;
-          t.data = { reportsPerSec: Math.round(n / 1.2), firmware: okFw, mac: okMac, calibration: okCal, simpleMode: ds.simpleMode };
+          t.data = { reportsPerSec: Math.round(n / 1.2), lossPercent: lossPct == null ? null : +lossPct.toFixed(2), firmware: okFw, mac: okMac, calibration: okCal, simpleMode: ds.simpleMode };
           t.detail = [
             Math.round(n / 1.2) + tr(' rapports/s') + (okRate ? '' : tr(' (trop peu)')),
+            lossPct == null ? tr('pertes non mesurées') : tr('pertes ') + lossPct.toFixed(1) + ' %',
             'firmware ' + yesNo(okFw), 'MAC ' + yesNo(okMac), tr('calibration IMU ') + yesNo(okCal),
             ds.simpleMode ? tr('mode simplifié, capteurs indisponibles') : tr('rapport complet'),
           ].join(', ');
-          finish(t, okRate && okFw && okMac && okCal && !ds.simpleMode);
+          finish(t, okRate && okLoss && okFw && okMac && okCal && !ds.simpleMode);
         },
       }),
       T({
@@ -602,9 +626,9 @@
       }),
       T({
         id: 'buttons', title: 'Tous les boutons',
-        instructions: 'Appuyez puis relâchez chaque bouton une fois, y compris L3/R3 (cliquer les sticks), PS, Create, Options, Micro et le clic du pavé tactile.',
+        instructions: 'Appuyez puis relâchez chaque bouton une fois, y compris L3/R3 (cliquer les sticks), PS, Create, Options, Micro et le clic du pavé tactile. Un bouton qui envoie deux appuis pour un seul (rebond) fait échouer le test.',
         kind: 'auto',
-        start(t) { t.status = 'running'; t.data = { pressed: {}, done: {} }; renderTests(); },
+        start(t) { chatter = {}; t.status = 'running'; t.data = { pressed: {}, done: {} }; renderTests(); },
         onState(st) {
           const d = this.data;
           for (const k of btnSet) {
@@ -613,9 +637,11 @@
           }
           const n = Object.keys(d.done).length;
           const missing = btnSet.filter(k => !d.done[k]).map(k => tr((buttonList().find(b => b[0] === k) || [k, k])[1]));
-          const txt = n + '/' + btnSet.length + (missing.length ? tr(', reste : ') + missing.join(' ') : '');
+          const bounced = Object.keys(chatter).length > 0;
+          const txt = n + '/' + btnSet.length + (missing.length ? tr(', reste : ') + missing.join(' ') : '') +
+            (bounced ? tr(', rebonds : ') + chatterText(chatter) : '');
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
-          if (n === btnSet.length) finish(this, true);
+          if (n === btnSet.length) { this.data.chatter = { ...chatter }; finish(this, !bounced); }
         },
       }),
       T({
@@ -701,14 +727,20 @@
             if (r > 0.7 && s.phase !== 'out') { s.phase = 'out'; }
             if (s.phase === 'out') {
               if (r > 0.7) { s.dir = [x / r, y / r]; }
-              else if (r < 0.25) { s.phase = 'ret'; s.t0 = st.time; s.over = 0; s.rest = []; }
+              else if (r < 0.25) { s.phase = 'ret'; s.t0 = st.time; s.over = 0; s.rest = []; s.trace = []; }
             } else if (s.phase === 'ret') {
               const el = st.time - s.t0;
               if (x * s.dir[0] + y * s.dir[1] < 0) s.over = Math.max(s.over, r);
+              s.trace.push([el, x, y]);
               if (el >= 300) s.rest.push(r);
               if (el >= 600) {
                 const rest = s.rest.reduce((a, b) => a + b, 0) / (s.rest.length || 1);
-                s.rel.push({ over: s.over, rest });
+                // settled = from then on the stick stays within 2 % of its final position
+                const tail = s.trace.filter(p => p[0] >= 300);
+                const fx = tail.reduce((a, p) => a + p[1], 0) / (tail.length || 1), fy = tail.reduce((a, p) => a + p[2], 0) / (tail.length || 1);
+                let settle = 0;
+                for (const p of s.trace) if (Math.hypot(p[1] - fx, p[2] - fy) > 0.02) settle = p[0];
+                s.rel.push({ over: s.over, rest, settle });
                 s.phase = 'idle';
               }
             }
@@ -717,13 +749,15 @@
             const rel = d[n].rel;
             if (!rel.length) return null;
             const ov = rel.map(v => v.over).sort((a, b) => a - b);
-            return { count: rel.length, overMedian: +(ov[Math.floor(ov.length / 2)] * 100).toFixed(1), restMax: +(Math.max(...rel.map(v => v.rest)) * 100).toFixed(1) };
+            const st2 = rel.map(v => v.settle).sort((a, b) => a - b);
+            return { count: rel.length, overMedian: +(ov[Math.floor(ov.length / 2)] * 100).toFixed(1), restMax: +(Math.max(...rel.map(v => v.rest)) * 100).toFixed(1),
+              settleMedian: Math.round(st2[Math.floor(st2.length / 2)]) };
           };
           const a = sum('L'), b = sum('R');
           const ok = v => v && v.count >= 5 && v.restMax <= 8 && v.overMedian < 18;
           const txt = [tr('Gauche'), tr('Droit')].map((nm, i) => {
             const v = i ? b : a;
-            return nm + ' : ' + (v ? v.count + tr('/5 lâchers, retour ') + v.restMax + tr(' %, rebond ') + v.overMedian + ' %' : tr('0/5 lâchers'));
+            return nm + ' : ' + (v ? v.count + tr('/5 lâchers, retour ') + v.restMax + tr(' %, rebond ') + v.overMedian + tr(' %, stable en ') + v.settleMedian + ' ms' + (v.settleMedian > 300 ? tr(' (lent)') : '') : tr('0/5 lâchers'));
           }).join(' | ');
           this.data.result = { left: a, right: b };
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
@@ -774,7 +808,7 @@
       }),
       T({
         id: 'imuStill', title: 'Capteurs au repos (gyroscope / accéléromètre)',
-        instructions: 'Posez la manette à plat sur une table, ne la touchez plus, cliquez « Lancer ». Exige : gyro moyen < 2 °/s, bruit < 1 °/s, gravité mesurée entre 0,95 et 1,05 g.',
+        instructions: 'Posez la manette à plat sur une table, ne la touchez plus, cliquez « Lancer ». Exige : gyro moyen < 3 °/s, bruit < 1 °/s, gravité mesurée entre 0,92 et 1,08 g. Si la manette bouge, la mesure recommence.',
         kind: 'auto',
         start(t) {
           if (ds.simpleMode || !ds.state || !ds.state.gyro) { t.detail = tr('Capteurs indisponibles'); return finish(t, false); }
@@ -788,10 +822,17 @@
           const mean = [0, 1, 2].map(i => d.g.reduce((s, g) => s + g[i], 0) / n);
           const sd = [0, 1, 2].map(i => Math.sqrt(d.g.reduce((s, g) => s + (g[i] - mean[i]) ** 2, 0) / n));
           const am = d.a.reduce((s, v) => s + v, 0) / (d.a.length || 1);
+          const asd = Math.sqrt(d.a.reduce((s, v) => s + (v - am) ** 2, 0) / (d.a.length || 1));
+          // accelerometer noise above 0.02 g means the controller was moved or touched
+          if (asd > 0.02 && (d.retries || 0) < 2) {
+            this.data = { g: [], a: [], t0: now, retries: (d.retries || 0) + 1 };
+            this.detail = tr('Manette bougée, nouvelle mesure…'); renderTestBody(this);
+            return;
+          }
           const maxMean = Math.max(...mean.map(Math.abs)), maxSd = Math.max(...sd);
           this.data = { gyroMean: mean.map(v => +v.toFixed(2)), gyroNoise: sd.map(v => +v.toFixed(2)), accelMagnitude: +am.toFixed(3), samples: d.g.length };
-          const ok = maxMean < 2 && maxSd < 1 && am > 0.95 && am < 1.05 && d.g.length > 20;
-          this.detail = tr('Gyro moyen max ') + maxMean.toFixed(2) + tr(' °/s, bruit ') + maxSd.toFixed(2) + ' °/s, |a| = ' + am.toFixed(3) + ' g';
+          const ok = asd <= 0.02 && maxMean < 3 && maxSd < 1 && am > 0.92 && am < 1.08 && d.g.length > 20;
+          this.detail = (asd > 0.02 ? tr('Manette bougée pendant la mesure. ') : '') + tr('Gyro moyen max ') + maxMean.toFixed(2) + tr(' °/s, bruit ') + maxSd.toFixed(2) + ' °/s, |a| = ' + am.toFixed(3) + ' g';
           finish(this, ok);
         },
       }),
@@ -1021,6 +1062,60 @@
   }
   renderHistory();
 
+  // Before / after comparison with a previously exported JSON report
+  function metrics(r) {
+    const t = id => (r.tests || []).find(x => x.id === id) || {};
+    const d = id => t(id).data || {};
+    const pick = (o, k) => (o && o[k] != null ? o[k] : null);
+    return [
+      [tr('Verdict'), r.verdict, null],
+      [tr('Dérive stick gauche (%)'), pick(d('drift').left, 'offset'), 'low'],
+      [tr('Dérive stick droit (%)'), pick(d('drift').right, 'offset'), 'low'],
+      [tr('Bruit stick gauche (%)'), pick(d('drift').left, 'noise'), 'low'],
+      [tr('Bruit stick droit (%)'), pick(d('drift').right, 'noise'), 'low'],
+      [tr('Circularité gauche (%)'), pick(d('sticks').left, 'error'), 'low'],
+      [tr('Circularité droite (%)'), pick(d('sticks').right, 'error'), 'low'],
+      [tr('Retour au centre gauche (%)'), pick(d('snapback').left, 'restMax'), 'low'],
+      [tr('Retour au centre droit (%)'), pick(d('snapback').right, 'restMax'), 'low'],
+      [tr('Gyro au repos (°/s)'), d('imuStill').gyroMean ? Math.max(...d('imuStill').gyroMean.map(Math.abs)) : null, 'low'],
+      [tr('Gravité mesurée (g)'), pick(d('imuStill'), 'accelMagnitude'), null],
+      [tr('Batterie (%)'), r.device && r.device.battery ? r.device.battery.percent : null, null],
+      [tr('Temps d\'utilisation (h)'), r.usage && r.usage.totalActiveTime != null ? Math.round(r.usage.totalActiveTime / 360) / 10 : null, null],
+      [tr('Tests réussis'), (r.tests || []).filter(x => x.status === 'pass').length + '/' + (r.tests || []).length, null],
+    ];
+  }
+  function renderCompare(old) {
+    const cur = buildReport();
+    const a = metrics(old), b = metrics(cur);
+    const same = old.factory && cur.factory && old.factory.serial && old.factory.serial === cur.factory.serial;
+    $('compareInfo').textContent = tr('Avant : ') + new Date(old.date).toLocaleString() + (old.unit ? ' (' + old.unit + ')' : '') +
+      tr(', après : maintenant') + (old.factory && cur.factory && old.factory.serial && !same ? tr('. Attention : numéros de série différents.') : '');
+    $('compareBody').innerHTML = '<tr><th></th><td><b>' + tr('Avant') + '</b></td><td><b>' + tr('Après') + '</b></td><td></td></tr>' + a.map((row, i) => {
+      const v0 = row[1], v1 = b[i][1];
+      let trend = '';
+      if (row[2] === 'low' && typeof v0 === 'number' && typeof v1 === 'number' && Math.abs(v1 - v0) >= 0.5) {
+        trend = v1 < v0 ? '<span class="txt-ok">' + tr('mieux') + '</span>' : '<span class="txt-bad">' + tr('moins bien') + '</span>';
+      }
+      const f = v => v == null ? '-' : esc(typeof v === 'number' ? +v.toFixed(2) : v);
+      return '<tr><th>' + row[0] + '</th><td>' + f(v0) + '</td><td>' + f(v1) + '</td><td>' + trend + '</td></tr>';
+    }).join('');
+    $('compareCard').hidden = false;
+    $('compareCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  let compareWith = null;
+  $('btnCompare').addEventListener('click', () => $('compareFile').click());
+  $('compareFile').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const r = JSON.parse(await file.text());
+      if (!r || !Array.isArray(r.tests)) throw new Error(tr('ce fichier n\'est pas un rapport ZherPad'));
+      compareWith = r;
+      renderCompare(r);
+    } catch (err) { alert(tr('Rapport illisible : ') + err.message); }
+  });
+
   $('btnExportJson').addEventListener('click', () => {
     const r = buildReport(); saveHistory(r);
     const blob = new Blob([JSON.stringify(r, null, 2)], { type: 'application/json' });
@@ -1072,6 +1167,7 @@
     buildButtonGrid();
     renderTests();
     renderHistory();
+    if (compareWith) renderCompare(compareWith);
   });
 
   // Offline support / install as an app
