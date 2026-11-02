@@ -107,7 +107,7 @@ const MOCK = `
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.addInitScript(MOCK);
   await page.goto('file://' + path.resolve(__dirname, '..', 'index.html'));
-  await page.click('#btnConnect');
+  await page.click('#btnConnect2');
   await page.waitForFunction(() => document.getElementById('i-mac').textContent !== '-');
   await page.waitForTimeout(1200);
   const info = await page.evaluate(() => ['i-model','i-conn','i-mac','i-fw','i-upd','i-hw','i-build','i-bat','i-charge','i-rate','i-mode'].map(id => id + ' = ' + document.getElementById(id).textContent));

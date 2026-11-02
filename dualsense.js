@@ -165,10 +165,21 @@
         this.out.trigL = TriggerFx.off(); this.out.trigR = TriggerFx.off();
         await this.sendOutput();
       } catch (e) { /* ignore */ }
+      const dev = this.device;
+      this.detach();
+      try { await dev.close(); } catch (e) { /* ignore */ }
+    }
+
+    /** Forgets the device without talking to it (used when it was unplugged). */
+    detach() {
       if (this._rumbleTimer) { clearInterval(this._rumbleTimer); this._rumbleTimer = null; }
-      this.device.removeEventListener('inputreport', this._onInput);
-      try { await this.device.close(); } catch (e) { /* ignore */ }
+      if (this.device) this.device.removeEventListener('inputreport', this._onInput);
       this.device = null;
+      this._lastSeq = null;
+      this.state = null;
+      this.factory = null;
+      this.telemetry = null;
+      this.telemetryRaw = null;
       this.dispatchEvent(new Event('closed'));
     }
 

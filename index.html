@@ -3,9 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ZherPad</title>
-<meta name="description" content="ZherPad : diagnostic complet, infos usine, historique d'usage et validation de manette PS5 DualSense / DualSense Edge dans le navigateur (WebHID).">
-<meta name="theme-color" content="#2f6bff">
+<title>ZherPad | Testeur de manette PS5 DualSense en ligne</title>
+<meta name="description" content="Testez une manette PS5 DualSense ou DualSense Edge dans le navigateur : dérive des sticks (drift), gâchettes adaptatives, boutons, batterie, gyroscope, infos usine, historique d'usage, calibration et rapport PDF. Gratuit, sans installation.">
+<meta name="theme-color" content="#2550b8">
+<link rel="canonical" href="https://anzher44.github.io/zherpad/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://anzher44.github.io/zherpad/">
+<meta property="og:title" content="ZherPad | Testeur de manette PS5 DualSense en ligne">
+<meta property="og:description" content="Dérive des sticks, gâchettes, batterie, capteurs, infos usine, historique d'usage, calibration et rapport PDF, directement dans le navigateur.">
+<meta property="og:image" content="https://anzher44.github.io/zherpad/og.png">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "ZherPad",
+  "url": "https://anzher44.github.io/zherpad/",
+  "description": "Browser tool to test, validate and recalibrate PS5 DualSense and DualSense Edge controllers: stick drift, adaptive triggers, buttons, battery, motion sensors, factory info, usage history and PDF report.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Windows, macOS, Linux, ChromeOS",
+  "browserRequirements": "Google Chrome or Microsoft Edge with WebHID",
+  "inLanguage": ["fr", "en"],
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "license": "https://opensource.org/licenses/MIT",
+  "codeRepository": "https://github.com/anzher44/zherpad"
+}
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
@@ -15,7 +40,7 @@
   <div class="brand">
     <img class="logo" src="icon.svg" alt="" width="40" height="40">
     <div>
-      <h1>ZherPad</h1>
+      <div class="name">ZherPad</div>
       <p class="sub">Diagnostic et validation de manette DualSense</p>
     </div>
   </div>
@@ -31,10 +56,30 @@
 <div id="unsupported" class="banner warn" hidden data-i18n-html>
   Votre navigateur ne gère pas <b>WebHID</b>. Ouvrez cette page avec <b>Google Chrome</b> ou <b>Microsoft Edge</b> (ordinateur).
 </div>
-<div id="hint" class="banner info" data-i18n-html>
-  1. Branchez la manette en <b>USB</b> (recommandé) ou appairez-la en Bluetooth. 2. Cliquez sur <b>Connecter la manette</b> et choisissez
-  « DualSense Wireless Controller ». 3. Suivez l'onglet <b>Validation</b>.
-</div>
+<section id="welcome">
+  <div class="wl-main">
+    <div class="wl-text">
+      <h1>Testeur de manette PS5 DualSense</h1>
+      <p class="lead">Vérifiez une manette DualSense ou DualSense Edge en quelques minutes, directement dans le navigateur : dérive des sticks, gâchettes, boutons, batterie, capteurs, infos usine et historique d'usage, avec un rapport PDF à la fin.</p>
+      <ol class="steps">
+        <li data-i18n-html><b>Branchez la manette</b> en USB, ou appairez-la en Bluetooth.</li>
+        <li data-i18n-html><b>Cliquez sur « Connecter la manette »</b> et choisissez « DualSense Wireless Controller ».</li>
+        <li data-i18n-html><b>Suivez le contrôle guidé</b>, puis imprimez le rapport.</li>
+      </ol>
+      <button id="btnConnect2" class="primary big">Connecter la manette</button>
+      <p class="small">Fonctionne avec Google Chrome ou Microsoft Edge sur ordinateur. Rien à installer, aucune donnée envoyée.</p>
+    </div>
+    <img class="wl-img" src="assets/controllers/00.webp" alt="Manette DualSense" width="440" height="245">
+  </div>
+  <div class="features">
+    <div><h2>Contrôle complet</h2><p>21 tests guidés et un verdict clair : validée ou non validée.</p></div>
+    <div><h2>Sticks</h2><p>Dérive, bruit, circularité, retour au centre et zone morte conseillée.</p></div>
+    <div><h2>Infos usine</h2><p>Numéro de série, couleur, carte mère et détection des contrefaçons.</p></div>
+    <div><h2>Historique d'usage</h2><p>Heures d'utilisation, charges et appuis par bouton, enregistrés par la manette.</p></div>
+    <div><h2>Calibration</h2><p>Recalibrage du centre et de l'amplitude des sticks, réversible jusqu'à la sauvegarde.</p></div>
+    <div><h2>Rapport PDF</h2><p>Une page avec la manette dans sa couleur, prête à remettre à un client.</p></div>
+  </div>
+</section>
 <div id="seenBefore" class="banner info" hidden></div>
 <div id="cloneWarn" class="banner bad" hidden></div>
 <div id="bthint" class="banner warn" hidden data-i18n-html>
@@ -42,12 +87,12 @@
 </div>
 
 <nav class="tabs" role="tablist">
-  <button class="tab active" data-tab="info">Infos</button>
+  <button class="tab active" data-tab="info">Manette</button>
+  <button class="tab" data-tab="val">Contrôle</button>
   <button class="tab" data-tab="live">Entrées</button>
   <button class="tab" data-tab="out">Sorties</button>
-  <button class="tab" data-tab="val">Validation</button>
   <button class="tab" data-tab="cal">Calibration</button>
-  <button class="tab" data-tab="raw">Brut</button>
+  <button class="tab tab-aside" data-tab="raw">Données brutes</button>
 </nav>
 
 <main>
@@ -59,6 +104,7 @@
       <div id="h-model" class="hero-model">Aucune manette connectée</div>
       <div id="h-color" class="hero-color"></div>
       <dl id="h-facts" class="hero-facts"></dl>
+      <button id="btnStartCheck" class="primary">Démarrer le contrôle</button>
     </div>
   </div>
   <div class="grid2">
@@ -215,11 +261,12 @@
       <p class="small" id="verdictDetail"></p>
     </div>
     <div class="actions">
+      <button id="btnNextTest" class="primary">Aller au test suivant</button>
       <button id="btnResetTests" class="ghost">Recommencer</button>
       <button id="btnExportJson" class="ghost">Exporter JSON</button>
       <button id="btnCompare" class="ghost">Comparer avec un rapport</button>
       <input type="file" id="compareFile" accept=".json,application/json" hidden>
-      <button id="btnPrint" class="primary">Rapport PDF / imprimer</button>
+      <button id="btnPrint" class="ghost">Rapport PDF / imprimer</button>
     </div>
   </div>
   <div class="card">

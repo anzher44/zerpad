@@ -1,6 +1,6 @@
 # ZherPad
 
-Browser tool to test, validate and recalibrate PS5 DualSense controllers.
+Free online PS5 controller tester: test, validate and recalibrate a DualSense or DualSense Edge in the browser. Checks stick drift, adaptive triggers, buttons, battery, gyroscope, factory info and usage history, and prints a one-page PDF report.
 
 Live version: https://anzher44.github.io/zherpad/
 
@@ -30,9 +30,9 @@ The interface is available in French and English (button in the top bar, detecte
 
 1. Open the site and plug in the controller.
 2. Click "Connecter la manette" and select "DualSense Wireless Controller".
-3. The Infos tab shows identity, factory info and usage counters.
-4. The Validation tab runs the tests one by one and prints the report.
-5. The Calibration tab recalibrates the sticks.
+3. The "Manette" tab shows the controller in its own color, its identity, factory info and usage counters.
+4. "Démarrer le contrôle" opens the "Contrôle" tab, which walks through the tests one by one and prints the report.
+5. The "Calibration" tab recalibrates the sticks.
 
 ## Validation tests
 

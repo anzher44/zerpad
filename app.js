@@ -1,7 +1,7 @@
 // ZherPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.2.0';
+  const VERSION = '2.3.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -9,21 +9,25 @@
   window.ds = ds; // handy for debugging from the console
 
   // Tabs
-  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
-    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + t.dataset.tab));
-  }));
+  function setTab(name) {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  }
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
 
   // Connection
   if (!DualSense.supported) {
     $('unsupported').hidden = false;
     $('btnConnect').disabled = true;
+    $('btnConnect2').disabled = true;
   }
 
-  $('btnConnect').addEventListener('click', async () => {
+  async function connect() {
     try { await ds.request(); }
     catch (e) { log(tr('Connexion annulée ou impossible : ') + e.message); }
-  });
+  }
+  $('btnConnect').addEventListener('click', connect);
+  $('btnConnect2').addEventListener('click', connect);
   $('btnDisconnect').addEventListener('click', () => ds.close());
   $('btnPowerOff').addEventListener('click', async () => {
     try { await ds.powerOff(); log(tr('Manette éteinte')); } catch (e) { log(tr('Extinction impossible : ') + e.message); }
@@ -38,8 +42,7 @@
     navigator.hid.addEventListener('disconnect', e => {
       if (ds.device && e.device === ds.device) {
         log(tr('Manette débranchée'));
-        ds.device = null;
-        ds.dispatchEvent(new Event('closed'));
+        ds.detach();
       }
     });
     navigator.hid.addEventListener('connect', e => {
@@ -55,14 +58,19 @@
     $('connStatus').className = 'pill on';
     $('btnConnect').hidden = true;
     $('btnDisconnect').hidden = false;
-    $('hint').hidden = true;
+    $('btnPowerOff').hidden = ds.transport !== 'bt';
     renderInfo();
     renderFeatures();
     buildButtonGrid();
-    buildTests();
+    // keep the results when the same controller comes back (for example a short Bluetooth drop)
+    if (!tests.length || lastDeviceKey !== ds.info.mac) buildTests(); else renderTests();
+    lastDeviceKey = ds.info.mac;
+    document.body.classList.add('connected');
+    setTab('info');
     renderHero();
     loadExtras();
   });
+  let lastDeviceKey = null;
   let extrasPromise = null;
   function loadExtras() {
     $('factoryBody').innerHTML = tr('<tr><td class="small">Lecture des infos usine…</td></tr>');
@@ -83,6 +91,7 @@
     $('bthint').hidden = true;
     $('seenBefore').hidden = true;
     $('cloneWarn').hidden = true;
+    document.body.classList.remove('connected');
     renderHero();
   });
 
@@ -978,6 +987,7 @@
     t.awaitingConfirm = false;
     t.finishedAt = new Date().toISOString();
     renderTests();
+    if ($('tab-val').classList.contains('active')) setTimeout(goToCurrent, 400);
   }
   function stopAllRunning() {
     touchShowGrid = false;
@@ -991,7 +1001,7 @@
     box.innerHTML = '';
     tests.forEach((t, idx) => {
       const el = document.createElement('div');
-      el.className = 'test ' + t.status;
+      el.className = 'test ' + t.status + (t === currentTest() ? ' current' : '');
       el.id = 'test-' + t.id;
       el.innerHTML =
         '<div class="thead"><span class="num">' + (idx + 1) + '</span><h3>' + tr(t.title) + (t.required ? '' : ' <small>' + tr('(optionnel)') + '</small>') + '</h3>' +
@@ -1019,6 +1029,17 @@
     });
     renderVerdict();
   }
+  // The next test to do is highlighted; finishing a test scrolls to the following one
+  const currentTest = () => tests.find(t => t.status === 'running') || tests.find(t => t.status === 'pending');
+  function goToCurrent() {
+    const t = currentTest();
+    if (!t) return;
+    const el = $('test-' + t.id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  $('btnStartCheck').addEventListener('click', () => { setTab('val'); setTimeout(goToCurrent, 50); });
+  $('btnNextTest').addEventListener('click', goToCurrent);
+
   function renderTestBody(t) {
     const el = $('test-' + t.id);
     if (el) el.querySelector('.detail').textContent = t.detail;
@@ -1040,6 +1061,7 @@
   }
   function renderVerdict() {
     const v = computeVerdict();
+    $('btnNextTest').hidden = !currentTest();
     $('verdict').className = 'verdict ' + v.key;
     $('verdict').textContent = v.label;
     $('verdictDetail').textContent = v.detail;

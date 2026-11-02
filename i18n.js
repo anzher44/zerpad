@@ -26,8 +26,8 @@
       },
     });
     while (walker.nextNode()) textNodes.push([walker.currentNode, walker.currentNode.nodeValue]);
-    document.querySelectorAll('[placeholder], [title]').forEach(el => {
-      ['placeholder', 'title'].forEach(a => { if (el.hasAttribute(a)) attrs.push([el, a, el.getAttribute(a)]); });
+    document.querySelectorAll('[placeholder], [title], img[alt]').forEach(el => {
+      ['placeholder', 'title', 'alt'].forEach(a => { if (el.getAttribute(a)) attrs.push([el, a, el.getAttribute(a)]); });
     });
   }
   function applyStatic() {
