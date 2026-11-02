@@ -61,6 +61,8 @@ input[type=range] { accent-color: var(--accent); }
 .banner.info { border-left-color: var(--accent); }
 .banner.warn { border-left-color: var(--warn); }
 .banner.bad { border-left-color: var(--bad); color: var(--bad); }
+.lang-offer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.lang-offer span { flex: 1; min-width: 200px; }
 
 /* Welcome screen, shown until a controller is connected */
 body:not(.connected) .tabs, body:not(.connected) main { display: none; }

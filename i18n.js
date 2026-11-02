@@ -1,10 +1,23 @@
 // Interface language. French strings are the keys; i18n-en.js maps them to English.
 (function () {
   'use strict';
-  const KEY = 'zherpad.lang';
-  let lang = 'fr';
-  try { lang = localStorage.getItem(KEY) || ''; } catch (e) { /* storage unavailable */ }
-  if (lang !== 'fr' && lang !== 'en') lang = /^fr\b/i.test(navigator.language || '') ? 'fr' : 'en';
+  const KEY = 'zherpad.lang', SUGGEST_KEY = 'zherpad.langSuggest';
+  const store = {
+    get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
+  };
+
+  // First supported language in the browser preference list (fr or en), English otherwise
+  function browserLang() {
+    const list = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']);
+    for (const l of list) {
+      if (/^fr\b/i.test(l)) return 'fr';
+      if (/^en\b/i.test(l)) return 'en';
+    }
+    return 'en';
+  }
+  let lang = store.get(KEY);
+  if (lang !== 'fr' && lang !== 'en') lang = browserLang();
 
   // tr('Texte {n}', { n: 3 })
   function tr(s, vars) {
@@ -43,11 +56,37 @@
   }
   function setLang(l) {
     lang = l;
-    try { localStorage.setItem(KEY, l); } catch (e) { /* storage unavailable */ }
+    store.set(KEY, l);
     applyStatic();
+    const bar = document.getElementById('langSuggest');
+    if (bar && lang === browserLang()) bar.remove();
     document.dispatchEvent(new Event('langchange'));
   }
 
+  // Offers the browser language when the page is shown in the other one (for example after an
+  // earlier manual choice). The offer is written in the browser language so it can be understood.
+  const OFFER = {
+    fr: ['Votre navigateur est en français. Afficher la page en français ?', 'Passer en français', 'Non merci'],
+    en: ['Your browser is set to English. Show this page in English?', 'Switch to English', 'No thanks'],
+  };
+  function suggest() {
+    const want = browserLang();
+    if (want === lang || store.get(SUGGEST_KEY) === want || document.getElementById('langSuggest')) return;
+    const [text, yes, no] = OFFER[want];
+    const bar = document.createElement('div');
+    bar.id = 'langSuggest';
+    bar.className = 'banner info lang-offer';
+    bar.lang = want;
+    const msg = document.createElement('span'); msg.textContent = text;
+    const b1 = document.createElement('button'); b1.className = 'primary small'; b1.textContent = yes;
+    const b2 = document.createElement('button'); b2.className = 'ghost small'; b2.textContent = no;
+    b1.addEventListener('click', () => { bar.remove(); setLang(want); });
+    b2.addEventListener('click', () => { store.set(SUGGEST_KEY, want); bar.remove(); });
+    bar.append(msg, b1, b2);
+    const top = document.querySelector('.top');
+    top.parentNode.insertBefore(bar, top.nextSibling);
+  }
+
   window.tr = tr;
-  window.I18N = { get lang() { return lang; }, setLang, collect, applyStatic };
+  window.I18N = { get lang() { return lang; }, setLang, collect, applyStatic, suggest, browserLang };
 })();
