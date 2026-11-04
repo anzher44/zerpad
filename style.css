@@ -77,7 +77,7 @@ input[type=range], input[type=checkbox] { accent-color: var(--accent); }
 .conn { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 #btnConnect { display: none; }
 /* Label */
-.pill { display: inline-block; font-size: 12px; font-weight: 500; line-height: 18px; padding: 0 7px; border: 1px solid var(--line); border-radius: 2em; color: var(--muted); margin-right: 4px; }
+.pill { display: inline-block; white-space: nowrap; font-size: 12px; font-weight: 500; line-height: 18px; padding: 0 7px; border: 1px solid var(--line); border-radius: 2em; color: var(--muted); margin-right: 4px; }
 .pill.on { color: var(--ok); border-color: var(--ok); }
 
 /* Flash messages */
@@ -123,14 +123,17 @@ body.connected #welcome { display: none; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px; margin-bottom: 16px; min-width: 0; }
 .card > h2:first-child { font-size: 14px; margin: -16px -16px 16px; padding: 12px 16px; background: var(--panel2); border-bottom: 1px solid var(--line); border-radius: 6px 6px 0 0; }
 .card > h2:first-child .small { font-weight: 400; }
+.card > h2:not(:first-child) { font-size: 14px; margin: 20px -16px 12px; padding: 16px 16px 0; border-top: 1px solid var(--line); }
 .grid2, .grid3 { display: grid; gap: 16px; margin-bottom: 16px; }
 .grid2 { grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); }
 .grid3 { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
 .grid2 > .card, .grid3 > .card { margin-bottom: 0; }
+.grid2, .grid3 { align-items: start; }
 
 table.kv { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.kv th { text-align: left; font-weight: 400; color: var(--muted); padding: 6px 16px 6px 0; white-space: nowrap; vertical-align: top; width: 1%; }
 table.kv td { padding: 6px 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+table.kv td.mono { font-size: 13px; }
 table.kv tr + tr th, table.kv tr + tr td { border-top: 1px solid var(--line2); }
 table.kv.small th, table.kv.small td { padding: 3px 12px 3px 0; font-size: 12px; }
 #history table.kv td { padding: 6px 12px 6px 0; }
@@ -186,6 +189,9 @@ canvas.touch { width: 100%; max-width: 720px; display: block; margin: 0 auto; he
 .verdict.partial { background: #9a6700; }
 .verdict.none { color: var(--muted); background: var(--panel2); border: 1px solid var(--line); }
 .verdict-card .small { font-size: 14px; margin: 0; }
+.progress { height: 8px; border-radius: 4px; background: var(--panel2); border: 1px solid var(--line); overflow: hidden; margin: 10px 0 0; max-width: 360px; }
+.progress > div { height: 100%; background: var(--primary); transition: width .3s; }
+.progress > div.bad { background: var(--bad); }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .tests { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 16px; overflow: hidden; }
@@ -290,4 +296,9 @@ pre.log { max-height: 260px; overflow-y: auto; white-space: pre-wrap; }
   .btngrid { grid-template-columns: repeat(3, 1fr); }
   #welcome { padding: 32px 16px; }
   .test > p.small, .detail, .tact { margin-left: 0; }
+  .top .sub { display: none; }
+  .conn { width: 100%; flex-wrap: nowrap; }
+  .conn button { font-size: 13px; padding: 3px 10px; }
+  .conn select.lang { padding: 3px 4px; }
+  .conn .pill { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 }

@@ -460,7 +460,7 @@
  "<b>Suivez le contrôle guidé</b>, puis imprimez le rapport.": "<b>Folgen Sie der geführten Prüfung</b> und drucken Sie dann den Bericht.",
  "Fonctionne avec Google Chrome ou Microsoft Edge sur ordinateur. Rien à installer, aucune donnée envoyée.": "Funktioniert mit Google Chrome oder Microsoft Edge auf dem Computer. Nichts zu installieren, keine Daten werden gesendet.",
  "Contrôle complet": "Vollständige Prüfung",
- "21 tests guidés et un verdict clair : validée ou non validée.": "21 geführte Tests und ein klares Ergebnis: bestanden oder nicht bestanden.",
+ "22 tests guidés et un verdict clair : validée ou non validée.": "22 geführte Tests und ein klares Ergebnis: bestanden oder nicht bestanden.",
  "Dérive, bruit, circularité, retour au centre et zone morte conseillée.": "Drift, Rauschen, Rundheit, Rückkehr zur Mitte und empfohlene Deadzone.",
  "Numéro de série, couleur, carte mère et détection des contrefaçons.": "Seriennummer, Farbe, Platine und Erkennung von Fälschungen.",
  "Heures d'utilisation, charges et appuis par bouton, enregistrés par la manette.": "Nutzungsstunden, Ladevorgänge und Drücke pro Taste, vom Controller aufgezeichnet.",

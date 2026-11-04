@@ -28,10 +28,20 @@
     c.setTransform(r, 0, 0, r, 0, 0);
     return { c, w, h };
   }
+  // Centered text, wrapped to the canvas width
   function centerText(c, w, h, lines) {
     c.fillStyle = css('--muted'); c.textAlign = 'center'; c.textBaseline = 'middle';
     c.font = '15px ' + css('--font');
-    lines.forEach((l, i) => c.fillText(l, w / 2, h / 2 + (i - (lines.length - 1) / 2) * 22));
+    const out = [];
+    for (const l of lines) {
+      let cur = '';
+      for (const word of l.split(' ')) {
+        const t = cur ? cur + ' ' + word : word;
+        if (cur && c.measureText(t).width > w - 32) { out.push(cur); cur = word; } else cur = t;
+      }
+      out.push(cur);
+    }
+    out.forEach((l, i) => c.fillText(l, w / 2, h / 2 + (i - (out.length - 1) / 2) * 22));
   }
 
   // Common game shell: start/stop button, status line, best score, stop when the tab is left

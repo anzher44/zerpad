@@ -1,7 +1,7 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.3.0';
+  const VERSION = '2.4.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -477,8 +477,8 @@
       }
     });
     $('touchTxt').textContent = (st.touches || []).map((t, k) =>
-      tr('Doigt ') + (k + 1) + ' : ' + (t.active ? 'x=' + t.x + ' y=' + t.y + ' (id ' + t.id + ')' : tr('aucun'))).join('  ,   ') +
-      (st.buttons.touchpad ? '  ,   CLIC' : '');
+      tr('Doigt ') + (k + 1) + ' : ' + (t.active ? 'x=' + t.x + ' y=' + t.y + ' (id ' + t.id + ')' : tr('aucun'))).join(', ') +
+      (st.buttons.touchpad ? ', CLIC' : '');
   }
 
   // Outputs
@@ -1095,7 +1095,8 @@
         if (t.kind === 'auto' && t.required) mk(tr('Abandonner (échec)'), 'bad', () => { t.detail += tr(' (abandonné)'); finish(t, false); });
         mk(tr('Passer'), 'ghost', () => { t.status = 'skip'; touchShowGrid = false; renderTests(); });
       } else {
-        mk(t.status === 'pending' ? tr('Lancer') : tr('Relancer'), t.status === 'pending' ? 'primary' : 'ghost small', () => {
+        // only the next test to do gets the green button
+        mk(t.status === 'pending' ? tr('Lancer') : tr('Relancer'), t.status === 'pending' ? (t === currentTest() ? 'primary' : '') : 'ghost small', () => {
           if (!ds.device) { alert(tr('Connectez d\'abord la manette.')); return; }
           t.detail = ''; t.start(t);
         });
@@ -1141,6 +1142,10 @@
     $('verdict').className = 'verdict ' + v.key;
     $('verdict').textContent = v.label;
     $('verdictDetail').textContent = v.detail;
+    const req = tests.filter(t => t.required);
+    const done = req.filter(t => t.status === 'pass' || t.status === 'fail').length;
+    $('verdictBar').style.width = (req.length ? done / req.length * 100 : 0) + '%';
+    $('verdictBar').className = v.key === 'bad' ? 'bad' : '';
   }
 
   $('btnResetTests').addEventListener('click', () => { if (ds.device) buildTests(); });

@@ -460,7 +460,7 @@
  "<b>Suivez le contrôle guidé</b>, puis imprimez le rapport.": "<b>Siga la revisión guiada</b> y luego imprima el informe.",
  "Fonctionne avec Google Chrome ou Microsoft Edge sur ordinateur. Rien à installer, aucune donnée envoyée.": "Funciona con Google Chrome o Microsoft Edge en ordenador. Nada que instalar, ningún dato enviado.",
  "Contrôle complet": "Revisión completa",
- "21 tests guidés et un verdict clair : validée ou non validée.": "21 pruebas guiadas y un resultado claro: válido o no válido.",
+ "22 tests guidés et un verdict clair : validée ou non validée.": "22 pruebas guiadas y un resultado claro: válido o no válido.",
  "Dérive, bruit, circularité, retour au centre et zone morte conseillée.": "Deriva, ruido, circularidad, retorno al centro y zona muerta recomendada.",
  "Numéro de série, couleur, carte mère et détection des contrefaçons.": "Número de serie, color, placa base y detección de imitaciones.",
  "Heures d'utilisation, charges et appuis par bouton, enregistrés par la manette.": "Horas de uso, cargas y pulsaciones por botón, registradas por el mando.",

@@ -460,7 +460,7 @@
  "<b>Suivez le contrôle guidé</b>, puis imprimez le rapport.": "<b>Follow the guided check</b>, then print the report.",
  "Fonctionne avec Google Chrome ou Microsoft Edge sur ordinateur. Rien à installer, aucune donnée envoyée.": "Works with Google Chrome or Microsoft Edge on a computer. Nothing to install, no data sent.",
  "Contrôle complet": "Full check",
- "21 tests guidés et un verdict clair : validée ou non validée.": "21 guided tests and a clear result: passed or failed.",
+ "22 tests guidés et un verdict clair : validée ou non validée.": "22 guided tests and a clear result: passed or failed.",
  "Dérive, bruit, circularité, retour au centre et zone morte conseillée.": "Drift, noise, circularity, return to center and recommended deadzone.",
  "Numéro de série, couleur, carte mère et détection des contrefaçons.": "Serial number, color, board revision and counterfeit detection.",
  "Heures d'utilisation, charges et appuis par bouton, enregistrés par la manette.": "Hours of use, charges and presses per button, recorded by the controller.",

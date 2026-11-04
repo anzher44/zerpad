@@ -7,7 +7,8 @@ the stick calibration sequence are adapted from them.
 ## daidr/dualsense-tester - https://github.com/daidr/dualsense-tester
 
 Telemetry block layout (0x70), factory read commands (serial number, PCBA, barcodes, trigger motors,
-battery voltage, touchpad), color table.
+battery voltage, touchpad), Bluetooth patch version (feature report 0x22), the controller's built-in
+test tone (audio commands 6/4 and 6/2), color table.
 
 ```
 MIT License
@@ -36,7 +37,7 @@ SOFTWARE.
 ## dualshock-tools - https://github.com/dualshock-tools/dualshock-tools.github.io
 
 Board revisions (BDM-0x0) from the hardware version, counterfeit detection (firmware date,
-stick fine-tune query), NVS memory state, stick center/range calibration and NVS save sequence, colors.
+stick fine-tune query, 12/2 on the DualSense and 12/4 on the Edge), NVS memory state, stick center/range calibration and NVS save sequence, colors.
 
 ```
 MIT License
