@@ -7,6 +7,13 @@
 <meta name="description" content="Testez une manette PS5 DualSense ou DualSense Edge dans le navigateur : dérive des sticks (drift), gâchettes adaptatives, boutons, batterie, gyroscope, infos usine, historique d'usage, calibration et rapport PDF. Test rapide aussi pour les manettes Xbox et Switch, sur Firefox, Safari et téléphone. Gratuit, sans installation.">
 <meta name="theme-color" content="#070b15">
 <link rel="canonical" href="https://anzher44.github.io/zerpad/">
+<link rel="alternate" hreflang="fr" href="https://anzher44.github.io/zerpad/">
+<link rel="alternate" hreflang="en" href="https://anzher44.github.io/zerpad/?lang=en">
+<link rel="alternate" hreflang="es" href="https://anzher44.github.io/zerpad/?lang=es">
+<link rel="alternate" hreflang="de" href="https://anzher44.github.io/zerpad/?lang=de">
+<link rel="alternate" hreflang="it" href="https://anzher44.github.io/zerpad/?lang=it">
+<link rel="alternate" hreflang="pt" href="https://anzher44.github.io/zerpad/?lang=pt">
+<link rel="alternate" hreflang="x-default" href="https://anzher44.github.io/zerpad/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://anzher44.github.io/zerpad/">
 <meta property="og:title" content="ZerPad | Testeur de manette PS5 DualSense en ligne">
@@ -95,7 +102,7 @@
 // Hide the page until a non-French dictionary is applied, so the French text never flashes
 (function () {
   var all = ['fr', 'en', 'es', 'de', 'it', 'pt'], l = null;
-  try { l = localStorage.getItem('zerpad.lang') || localStorage.getItem('zherpad.lang'); } catch (e) { /* storage unavailable */ }
+  try { l = new URLSearchParams(location.search).get('lang') || localStorage.getItem('zerpad.lang') || localStorage.getItem('zherpad.lang'); } catch (e) { /* storage unavailable */ }
   if (all.indexOf(l) < 0) {
     l = 'en';
     var nav = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];

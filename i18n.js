@@ -26,7 +26,9 @@
     }
     return 'en';
   }
-  let lang = store.get(KEY) || store.get('zherpad.lang');
+  // ?lang=xx in the address wins (shared links, search engines), then the saved choice, then the browser
+  const urlLang = (() => { try { return new URLSearchParams(location.search).get('lang'); } catch (e) { return null; } })();
+  let lang = LANGS[urlLang] ? urlLang : store.get(KEY) || store.get('zherpad.lang');
   if (!LANGS[lang]) lang = browserLang();
 
   // tr('Texte {n}', { n: 3 })
@@ -80,6 +82,21 @@
     document.documentElement.lang = lang;
     const sel = document.getElementById('selLang');
     if (sel) sel.value = lang;
+    // Title, description and canonical address follow the language
+    document.title = tr(head.title);
+    if (head.desc) head.desc.setAttribute('content', tr(head.descText));
+    // only an address that names its language is its own canonical; the plain address stays the default
+    let inUrl = false;
+    try { inUrl = LANGS[new URLSearchParams(location.search).get('lang')] != null; } catch (e) { /* no location */ }
+    if (head.canon) head.canon.setAttribute('href', head.canonUrl + (inUrl && lang !== 'fr' ? '?lang=' + lang : ''));
+  }
+  const head = {};
+  function collectHead() {
+    head.title = document.title;
+    head.desc = document.querySelector('meta[name="description"]');
+    head.descText = head.desc ? head.desc.getAttribute('content') : '';
+    head.canon = document.querySelector('link[rel="canonical"]');
+    head.canonUrl = head.canon ? head.canon.getAttribute('href').split('?')[0] : '';
   }
   function apply() {
     applyStatic();
@@ -90,6 +107,11 @@
     try { await load(l); } catch (e) { return; }
     lang = l;
     store.set(KEY, l);
+    // Keep the address in step with the language so it can be shared as is
+    try {
+      const u = new URL(location.href);
+      if (u.searchParams.has('lang') || urlLang) { u.searchParams.set('lang', l); history.replaceState(null, '', u); }
+    } catch (e) { /* file:// or no history */ }
     const bar = document.getElementById('langSuggest');
     if (bar) bar.remove();
     apply();
@@ -135,6 +157,7 @@
   // Page start: French text is already in the HTML; another language is applied once its file is loaded
   function init() {
     collect();
+    collectHead();
     initMenu();
     document.documentElement.lang = lang;
     const show = () => document.documentElement.classList.remove('i18n-wait');
