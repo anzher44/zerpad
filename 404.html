@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ZerPad</title>
+<link rel="icon" href="/zerpad/icon.svg" type="image/svg+xml">
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #070b15; color: #e6ebf5; font: 15px/1.5 system-ui, sans-serif; text-align: center; }
+  a { color: #7aa2ff; }
+</style>
+<script>
+// Unknown address under the site: go to the home page, keeping the language if one was given
+(function () {
+  var m = location.search.match(/[?&]lang=(fr|en|es|de|it|pt)\b/);
+  location.replace('/zerpad/' + (m ? '?lang=' + m[1] : ''));
+})();
+</script>
+</head>
+<body>
+<p>Page introuvable. <a href="/zerpad/">Aller à ZerPad</a><br><span lang="en">Page not found. <a href="/zerpad/">Go to ZerPad</a></span></p>
+</body>
+</html>

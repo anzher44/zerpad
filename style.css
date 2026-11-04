@@ -356,3 +356,4 @@ pre.log { max-height: 260px; overflow-y: auto; white-space: pre-wrap; }
 .faq details { border-bottom: 1px solid var(--line2); padding: 12px 0; }
 .faq summary { cursor: pointer; font-weight: 500; font-size: 14.5px; }
 .faq p { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+#btnClearHistory { margin-top: 12px; }

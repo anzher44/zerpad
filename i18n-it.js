@@ -1,5 +1,8 @@
 // Italian translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).it = {
+  "Effacer l'historique des contrôles de ce navigateur ?": "Cancellare la cronologia dei controlli di questo browser?",
+  "Installer": "Installa",
+  "Effacer l'historique": "Cancella la cronologia",
   " · max ": " · max ",
   "non testés : ": "non testati: ",
   "Dérive": "Drift",

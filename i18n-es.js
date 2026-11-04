@@ -1,5 +1,8 @@
 // Spanish translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).es = {
+  "Effacer l'historique des contrôles de ce navigateur ?": "¿Borrar el historial de controles de este navegador?",
+  "Installer": "Instalar",
+  "Effacer l'historique": "Borrar el historial",
   " · max ": " · máx. ",
   "non testés : ": "sin probar: ",
   "Dérive": "Deriva",

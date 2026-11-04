@@ -1,5 +1,8 @@
 // German translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).de = {
+  "Effacer l'historique des contrôles de ce navigateur ?": "Prüfverlauf in diesem Browser löschen?",
+  "Installer": "Installieren",
+  "Effacer l'historique": "Verlauf löschen",
   " · max ": " · max. ",
   "non testés : ": "nicht getestet: ",
   "Dérive": "Drift",

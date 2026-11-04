@@ -1,7 +1,9 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.10.0';
+  // Numbers in the reader's format (3,2 in French, 3.2 in English)
+  const nf = (v, d) => Number(v).toLocaleString(I18N.locale, d == null ? { maximumFractionDigits: 2 } : { minimumFractionDigits: d, maximumFractionDigits: d });
+  const VERSION = '2.11.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -55,6 +57,17 @@
       }
     });
   }
+
+  // Install as an app, when the browser offers it
+  let installEvt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('btnInstall').hidden = false; });
+  window.addEventListener('appinstalled', () => { installEvt = null; $('btnInstall').hidden = true; });
+  $('btnInstall').addEventListener('click', async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    try { await installEvt.userChoice; } catch (e) { /* dismissed */ }
+    installEvt = null; $('btnInstall').hidden = true;
+  });
 
   ds.addEventListener('log', e => log(e.detail));
   // Keep the screen awake while a controller is connected: tests and calibration take a while
@@ -183,7 +196,7 @@
       [tr('PCBA ID'), f.pcbaId],
       [tr('ID unique MCU'), f.mcuUniqueId],
       [tr('Adresse Bluetooth'), f.btAddress],
-      [tr('Tension batterie'), f.batteryVoltage ? (f.batteryVoltage / 1000).toFixed(2) + ' V' : null],
+      [tr('Tension batterie'), f.batteryVoltage ? nf(f.batteryVoltage / 1000, 2) + ' V' : null],
       [tr('Code-barres batterie'), f.batteryBarcode],
       [tr('Code-barres VCM gauche'), f.vcmLeft],
       [tr('Code-barres VCM droit'), f.vcmRight],
@@ -397,8 +410,8 @@
     drawStick($('cvL'), stickStats.L, st.lx, st.ly);
     drawStick($('cvR'), stickStats.R, st.rx, st.ry);
     const cL = circularity(stickStats.L), cR = circularity(stickStats.R);
-    $('txL').textContent = st.lx + ',' + st.ly + (cL.error != null ? ', circ. ' + cL.error.toFixed(1) + '%' : '');
-    $('txR').textContent = st.rx + ',' + st.ry + (cR.error != null ? ', circ. ' + cR.error.toFixed(1) + '%' : '');
+    $('txL').textContent = st.lx + ',' + st.ly + (cL.error != null ? ', circ. ' + nf(cL.error, 1) + ' %' : '');
+    $('txR').textContent = st.rx + ',' + st.ry + (cR.error != null ? ', circ. ' + nf(cR.error, 1) + ' %' : '');
     const stop = k => ds.model === 'DualSense Edge' && st.edgeStops ? tr(' (butée ') + (st.edgeStops[k] + 1) + ')' : '';
     $('barL2').style.width = (st.l2 / 2.55) + '%'; $('valL2').textContent = st.l2 + stop('l2');
     $('barR2').style.width = (st.r2 / 2.55) + '%'; $('valR2').textContent = st.r2 + stop('r2');
@@ -421,7 +434,7 @@
       $('i-ts').textContent = st.sensorTs;
     }
     $('chatterTxt').textContent = tr('Rebonds de boutons : ') + chatterText(chatter);
-    $('i-rate').textContent = ds.reportRate ? ds.reportRate + tr(' rapports/s (≈ ') + (1000 / ds.reportRate).toFixed(1) + ' ms)' +
+    $('i-rate').textContent = ds.reportRate ? ds.reportRate + tr(' rapports/s (≈ ') + nf(1000 / ds.reportRate, 1) + ' ms)' +
       (ds.maxGap ? tr(', plus long écart ') + ds.maxGap.toFixed(0) + ' ms' + (ds.maxGap > 50 ? tr(' (liaison instable)') : '') : '') : '-';
     $('i-mode').textContent = ds.simpleMode ? tr('Simplifié (Bluetooth sans capteurs)') : tr('Complet (rapport 0x') + hex(st.reportId) + ')';
     if (now - lastRawDraw > 100 && ds.lastRaw) {
@@ -714,7 +727,7 @@
           t.data = { reportsPerSec: Math.round(n / 1.2), lossPercent: lossPct == null ? null : +lossPct.toFixed(2), firmware: okFw, mac: okMac, calibration: okCal, simpleMode: ds.simpleMode };
           t.detail = [
             Math.round(n / 1.2) + tr(' rapports/s') + (okRate ? '' : tr(' (trop peu)')),
-            lossPct == null ? tr('pertes non mesurées') : tr('pertes ') + lossPct.toFixed(1) + ' %',
+            lossPct == null ? tr('pertes non mesurées') : tr('pertes ') + nf(lossPct, 1) + ' %',
             'firmware ' + yesNo(okFw), 'MAC ' + yesNo(okMac), tr('calibration IMU ') + yesNo(okCal),
             ds.simpleMode ? tr('mode simplifié, capteurs indisponibles') : tr('rapport complet'),
           ].join(', ');
@@ -818,7 +831,7 @@
           const ok = r => r.offset <= 6 && r.noise <= 1.5;
           const q = r => r.noise > 1.5 ? tr('potentiomètre usé') : r.offset <= 1.25 ? tr('parfait') : r.offset <= 3.5 ? tr('bon')
             : r.offset <= 6 ? tr('léger décalage, calibration conseillée') : tr('DÉRIVE');
-          const f = (name, r) => name + tr(' : ') + r.offset + ' % (' + q(r) + tr('), bruit ') + r.noise + tr(' %, zone morte conseillée ') + r.deadzone + ' %';
+          const f = (name, r) => name + tr(' : ') + nf(r.offset) + ' % (' + q(r) + tr('), bruit ') + nf(r.noise) + tr(' %, zone morte conseillée ') + r.deadzone + ' %';
           this.detail = (moved ? tr('Mesure instable. ') : '') + f(tr('Gauche'), res.L) + ' | ' + f(tr('Droit'), res.R);
           finish(this, !moved && ok(res.L) && ok(res.R) && d.s.length > 20);
         },
@@ -840,7 +853,7 @@
             allOk = allOk && ok;
           }
           this.data = { left: r.L, right: r.R };
-          const f = (n, x) => n + tr(' : butées ') + yesNo(x.ext) + tr(', contour ') + x.coverage + ' %' + (x.error != null ? ', circ. ' + x.error + ' %' : '');
+          const f = (n, x) => n + tr(' : butées ') + yesNo(x.ext) + tr(', contour ') + x.coverage + ' %' + (x.error != null ? ', circ. ' + nf(x.error) + ' %' : '');
           const txt = f(tr('Gauche'), r.L) + ' | ' + f(tr('Droit'), r.R);
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
           if (allOk) finish(this, true);
@@ -892,7 +905,7 @@
           const ok = v => v && v.count >= 5 && v.restMax <= 8 && v.overMedian < 18;
           const txt = [tr('Gauche'), tr('Droit')].map((nm, i) => {
             const v = i ? b : a;
-            return nm + tr(' : ') + (v ? v.count + tr('/5 lâchers, retour ') + v.restMax + tr(' %, rebond ') + v.overMedian + tr(' %, stable en ') + v.settleMedian + ' ms' + (v.settleMedian > 300 ? tr(' (lent)') : '') : tr('0/5 lâchers'));
+            return nm + tr(' : ') + (v ? v.count + tr('/5 lâchers, retour ') + nf(v.restMax) + tr(' %, rebond ') + nf(v.overMedian) + tr(' %, stable en ') + v.settleMedian + ' ms' + (v.settleMedian > 300 ? tr(' (lent)') : '') : tr('0/5 lâchers'));
           }).join(' | ');
           this.data.result = { left: a, right: b };
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
@@ -988,7 +1001,7 @@
           const maxMean = Math.max(...mean.map(Math.abs)), maxSd = Math.max(...sd);
           this.data = { gyroMean: mean.map(v => +v.toFixed(2)), gyroNoise: sd.map(v => +v.toFixed(2)), accelMagnitude: +am.toFixed(3), samples: d.g.length };
           const ok = asd <= 0.02 && maxMean < 3 && maxSd < 1 && am > 0.92 && am < 1.08 && d.g.length > 20;
-          this.detail = (asd > 0.02 ? tr('Manette bougée pendant la mesure. ') : '') + tr('Gyro moyen max ') + maxMean.toFixed(2) + tr(' °/s, bruit ') + maxSd.toFixed(2) + ' °/s, |a| = ' + am.toFixed(3) + ' g';
+          this.detail = (asd > 0.02 ? tr('Manette bougée pendant la mesure. ') : '') + tr('Gyro moyen max ') + nf(maxMean, 2) + tr(' °/s, bruit ') + nf(maxSd, 2) + ' °/s, |a| = ' + nf(am, 3) + ' g';
           finish(this, ok);
         },
       }),
@@ -1264,7 +1277,13 @@
     $('history').innerHTML = h.length ? '<table class="kv"><tbody>' + h.map(x =>
       '<tr><td>' + new Date(x.date).toLocaleString(I18N.locale) + '</td><td>' + esc(x.model || '') + '</td><td class="mono">' + esc(x.serial || x.mac || '') + '</td><td>' + esc(x.unit || '') + '</td><td><b>' + esc(x.verdict) + '</b></td></tr>'
     ).join('') + '</tbody></table>' : tr('Aucun rapport enregistré.');
+    $('btnClearHistory').hidden = !h.length;
   }
+  $('btnClearHistory').addEventListener('click', () => {
+    if (!confirm(tr('Effacer l\'historique des contrôles de ce navigateur ?'))) return;
+    try { ['zerpad.history', 'zherpad.history', 'dsTester.history'].forEach(k => localStorage.removeItem(k)); } catch (e) { /* storage unavailable */ }
+    renderHistory();
+  });
   renderHistory();
   renderHero();
 
@@ -1302,7 +1321,7 @@
       if (row[2] === 'low' && typeof v0 === 'number' && typeof v1 === 'number' && Math.abs(v1 - v0) >= 0.5) {
         trend = v1 < v0 ? '<span class="txt-ok">' + tr('mieux') + '</span>' : '<span class="txt-bad">' + tr('moins bien') + '</span>';
       }
-      const f = v => v == null ? '-' : esc(typeof v === 'number' ? +v.toFixed(2) : v);
+      const f = v => v == null ? '-' : esc(typeof v === 'number' ? nf(v) : v);
       return '<tr><th>' + row[0] + '</th><td>' + f(v0) + '</td><td>' + f(v1) + '</td><td>' + trend + '</td></tr>';
     }).join('');
     $('compareCard').hidden = false;

@@ -9,6 +9,7 @@
   const hid = !!(window.DualSense && window.DualSense.supported);
   const $ = id => document.getElementById(id);
   const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const nf = (v, d) => Number(v).toLocaleString(window.I18N ? I18N.locale : undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
   const setText = (id, t) => { const e = $(id); if (e.textContent !== t) e.textContent = t; };
   box.hidden = hid;
   const sony = g => /054c|sony|dualsense|dualshock/i.test(g.id);
@@ -79,6 +80,13 @@
     requestAnimationFrame(frame);
     let p = pad();
     if (p && !usable(p)) { index = null; p = null; }
+    // Several controllers: follow the one whose button is being pressed
+    for (const g of navigator.getGamepads()) {
+      if (g && (!p || g.index !== p.index) && usable(g) && g.buttons.some(b => b.pressed)) {
+        index = g.index; p = g; seen.clear(); bins = [new Float32Array(BINS), new Float32Array(BINS)]; trigMax = [0, 0]; driftText = '';
+        break;
+      }
+    }
     if (!p) { const any = [...navigator.getGamepads()].find(usable); if (any) { index = any.index; p = any; } }
     if (hid) {
       box.hidden = !p;
@@ -97,7 +105,7 @@
     const ax = i => p.axes[i] || 0;
     if (!drift) { track(0, ax(0), ax(1)); track(1, ax(2), ax(3)); }
     stick($('qStickL'), ax(0), ax(1), 0); stick($('qStickR'), ax(2), ax(3), 1);
-    const ct = (n, k) => { const r = circ(k); return r.error == null ? '' : n + tr(' : ') + r.error.toFixed(1) + ' % (' + tr('contour couvert ') + Math.round(r.coverage * 100) + ' %)'; };
+    const ct = (n, k) => { const r = circ(k); return r.error == null ? '' : n + tr(' : ') + nf(r.error, 1) + ' % (' + tr('contour couvert ') + Math.round(r.coverage * 100) + ' %)'; };
     const cl = ct(tr('Gauche'), 0), cr = ct(tr('Droit'), 1);
     $('qCirc').textContent = cl || cr ? tr('Circularité, faites tourner les sticks en butée') + tr(' : ') + [cl, cr].filter(Boolean).join(' | ') : '';
     $('qValL').textContent = (ax(0) * 100).toFixed(0) + ' / ' + (ax(1) * 100).toFixed(0);
@@ -138,7 +146,7 @@
     if (res.some(r => r.moved)) { $('qDriftRes').textContent = tr('Mouvement détecté : relancez sans toucher les sticks.'); return; }
     const q = r => r.noise > 1.5 ? tr('potentiomètre usé') : r.offset <= 1.25 ? tr('parfait') : r.offset <= 3.5 ? tr('bon')
       : r.offset <= 6 ? tr('léger décalage, calibration conseillée') : tr('DÉRIVE');
-    const f = (n, r) => n + tr(' : ') + r.offset.toFixed(1) + ' % (' + q(r) + tr('), bruit ') + r.noise.toFixed(1) + tr(' %, zone morte conseillée ') + r.deadzone + ' %';
+    const f = (n, r) => n + tr(' : ') + nf(r.offset, 1) + ' % (' + q(r) + tr('), bruit ') + nf(r.noise, 1) + tr(' %, zone morte conseillée ') + r.deadzone + ' %';
     driftText = f(tr('Gauche'), res[0]) + ' | ' + f(tr('Droit'), res[1]);
     $('qDriftRes').textContent = driftText + tr('. Le navigateur peut appliquer sa propre zone morte : la valeur exacte demande Chrome ou Edge.');
   }

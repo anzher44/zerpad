@@ -22,7 +22,7 @@ let fail = 0;
   await p.click('#qDrift'); await p.waitForTimeout(3300); await p.click('#qRumble'); await p.waitForTimeout(200);
   const r = await p.evaluate(() => [quick.hidden, qCount.textContent, qDriftRes.textContent, qRumbleRes.textContent, document.documentElement.scrollWidth]);
   console.log(loc, JSON.stringify(r));
-  if (r[0] || !/^2 \//.test(r[1]) || !/2\.2 %/.test(r[2]) || !r[3] || r[4] > w) fail++;
+  if (r[0] || !/^2 \//.test(r[1]) || !/2[.,]2 %/.test(r[2]) || !r[3] || r[4] > w) fail++;
   }
   console.log(fail || errs.length ? 'FAIL ' + errs.join(' | ') : 'OK'); await b.close(); process.exit(fail || errs.length ? 1 : 0);
 })();
