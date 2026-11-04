@@ -1,7 +1,7 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.9.3';
+  const VERSION = '2.10.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -57,6 +57,16 @@
   }
 
   ds.addEventListener('log', e => log(e.detail));
+  // Keep the screen awake while a controller is connected: tests and calibration take a while
+  let wakeLock = null;
+  async function keepAwake() {
+    if (!('wakeLock' in navigator) || !ds.device || wakeLock || document.hidden) return;
+    try { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    catch (e) { /* refused (battery saver, policy): not needed for the tests */ }
+  }
+  ds.addEventListener('ready', keepAwake);
+  ds.addEventListener('closed', () => { if (wakeLock) wakeLock.release().catch(() => {}); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
   ds.addEventListener('ready', () => {
     $('connStatus').textContent = tr('Connectée : ') + ds.model;
     $('connStatus').className = 'pill on';

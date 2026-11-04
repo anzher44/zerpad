@@ -1,5 +1,9 @@
 // English translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).en = {
+  " · max ": " · max ",
+  "non testés : ": "not tested: ",
+  "Dérive": "Drift",
+  "Test rapide ZerPad": "ZerPad quick test",
   "ZerPad | Testeur de manette PS5 DualSense en ligne (drift, batterie, calibration)": "ZerPad | Online PS5 DualSense controller tester (drift, battery, calibration)",
   "Testez une manette PS5 DualSense ou DualSense Edge dans le navigateur : dérive des sticks (drift), gâchettes adaptatives, boutons, batterie, gyroscope, infos usine, historique d'usage, calibration et rapport PDF. Test rapide aussi pour les manettes Xbox et Switch, sur Firefox, Safari et téléphone. Gratuit, sans installation.": "Test a PS5 DualSense or DualSense Edge controller in the browser: stick drift, adaptive triggers, buttons, battery, gyroscope, factory info, usage history, calibration and PDF report. Quick test also for Xbox and Switch controllers, on Firefox, Safari and phones. Free, nothing to install.",
   "Questions fréquentes": "Frequently asked questions",

@@ -30,7 +30,8 @@
     grid.appendChild(b);
   });
   const seen = new Set();
-  let index = null, drift = null;
+  let index = null, drift = null, driftText = '';
+  let trigMax = [0, 0];
   // Outer contour per stick in 72 angle sectors, same method as the full test
   const BINS = 72;
   let bins = [new Float32Array(BINS), new Float32Array(BINS)];
@@ -102,8 +103,12 @@
     $('qValL').textContent = (ax(0) * 100).toFixed(0) + ' / ' + (ax(1) * 100).toFixed(0);
     $('qValR').textContent = (ax(2) * 100).toFixed(0) + ' / ' + (ax(3) * 100).toFixed(0);
     const tv = i => (p.buttons[i] ? p.buttons[i].value : 0);
-    $('qL2').style.width = (tv(6) * 100).toFixed(1) + '%'; $('qL2v').textContent = (tv(6) * 100).toFixed(0) + ' %';
-    $('qR2').style.width = (tv(7) * 100).toFixed(1) + '%'; $('qR2v').textContent = (tv(7) * 100).toFixed(0) + ' %';
+    // Full travel: a healthy trigger reaches 100 % when pressed to the end
+    [[6, 'qL2'], [7, 'qR2']].forEach(([i, id], k) => {
+      const v = tv(i); trigMax[k] = Math.max(trigMax[k], v);
+      $(id).style.width = (v * 100).toFixed(1) + '%';
+      setText(id + 'v', (v * 100).toFixed(0) + ' %' + (trigMax[k] > 0.05 ? tr(' · max ') + (trigMax[k] * 100).toFixed(0) + ' %' + (trigMax[k] >= 0.98 ? ' ✔' : '') : ''));
+    });
     grid.querySelectorAll('.qbtn').forEach(b => {
       const k = p.buttons[+b.dataset.i];
       const on = !!(k && k.pressed);
@@ -127,14 +132,15 @@
       const k = s.length || 1;
       const mx = s.reduce((a, v) => a + v[i], 0) / k, my = s.reduce((a, v) => a + v[i + 1], 0) / k;
       const d = s.map(v => Math.hypot(v[i] - mx, v[i + 1] - my)).sort((a, b) => a - b);
-      return { offset: Math.hypot(mx, my) * 100, noise: (d[Math.floor(d.length * 0.95)] || 0) * 100, moved: (d[d.length - 1] || 0) > 0.08 };
+      const offset = Math.hypot(mx, my) * 100, noise = (d[Math.floor(d.length * 0.95)] || 0) * 100;
+      return { offset, noise, deadzone: Math.ceil(offset + noise + 1), moved: (d[d.length - 1] || 0) > 0.08 };
     });
     if (res.some(r => r.moved)) { $('qDriftRes').textContent = tr('Mouvement détecté : relancez sans toucher les sticks.'); return; }
     const q = r => r.noise > 1.5 ? tr('potentiomètre usé') : r.offset <= 1.25 ? tr('parfait') : r.offset <= 3.5 ? tr('bon')
       : r.offset <= 6 ? tr('léger décalage, calibration conseillée') : tr('DÉRIVE');
-    const f = (n, r) => n + tr(' : ') + r.offset.toFixed(1) + ' % (' + q(r) + ')';
-    $('qDriftRes').textContent = f(tr('Gauche'), res[0]) + ' | ' + f(tr('Droit'), res[1]) +
-      tr('. Le navigateur peut appliquer sa propre zone morte : la valeur exacte demande Chrome ou Edge.');
+    const f = (n, r) => n + tr(' : ') + r.offset.toFixed(1) + ' % (' + q(r) + tr('), bruit ') + r.noise.toFixed(1) + tr(' %, zone morte conseillée ') + r.deadzone + ' %';
+    driftText = f(tr('Gauche'), res[0]) + ' | ' + f(tr('Droit'), res[1]);
+    $('qDriftRes').textContent = driftText + tr('. Le navigateur peut appliquer sa propre zone morte : la valeur exacte demande Chrome ou Edge.');
   }
   $('qDrift').addEventListener('click', () => {
     if (!pad()) return;
@@ -143,7 +149,31 @@
     $('qDriftRes').textContent = tr('Mesure en cours, ne touchez pas les sticks…');
   });
 
-  $('qClear').addEventListener('click', () => { bins = [new Float32Array(BINS), new Float32Array(BINS)]; seen.clear(); });
+  $('qClear').addEventListener('click', () => { bins = [new Float32Array(BINS), new Float32Array(BINS)]; seen.clear(); trigMax = [0, 0]; driftText = ''; });
+
+  // Plain text summary, handy on a phone for a sale listing
+  $('qCopy').addEventListener('click', async () => {
+    const p = pad();
+    if (!p) return;
+    const names = LAYOUTS[family(p)], n = Math.min(names.length, p.buttons.length);
+    const missing = names.slice(0, n).filter((x, i) => !seen.has(String(i)));
+    const L = [p.id];
+    L.push(tr('{n} / {t} boutons vérifiés', { n: seen.size, t: n }) + (missing.length && missing.length < n ? ' (' + tr('non testés : ') + missing.join(' ') + ')' : ''));
+    L.push(names[6] + ' / ' + names[7] + tr(' : ') + 'max ' + (trigMax[0] * 100).toFixed(0) + ' % / ' + (trigMax[1] * 100).toFixed(0) + ' %');
+    if ($('qCirc').textContent) L.push($('qCirc').textContent);
+    if (driftText) L.push(tr('Dérive') + tr(' : ') + driftText);
+    L.push('', tr('Test rapide ZerPad') + ' – https://anzher44.github.io/zerpad/');
+    const txt = L.join('\n');
+    try { await navigator.clipboard.writeText(txt); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e2) { /* nothing more to try */ }
+      ta.remove();
+    }
+    const b = $('qCopy'); b.textContent = tr('Résumé copié');
+    setTimeout(() => { b.textContent = tr('Copier le résumé'); }, 2000);
+  });
 
   $('qRumble').addEventListener('click', () => {
     const p = pad(), a = p && p.vibrationActuator;
