@@ -1,0 +1,37 @@
+name: Wrong test result
+description: A controller you know is good fails a test, or a bad one passes.
+labels: [thresholds]
+body:
+  - type: input
+    id: test
+    attributes:
+      label: Test
+      placeholder: Stick drift
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: Controller
+      options: [DualSense, DualSense Edge]
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options: [USB, Bluetooth]
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What happened
+      description: What the test showed, and why you think it is wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: JSON report
+      description: Export it from the Contrôle tab and drop the file here. Remove the serial number if you prefer.

@@ -1,0 +1,27 @@
+name: Bug
+description: Something on the site does not work.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and system
+      placeholder: Chrome 131, Windows 11
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options: [USB, Bluetooth, Not connected]
+  - type: textarea
+    id: log
+    attributes:
+      label: Console errors
+      description: Press F12, open the Console tab and paste any red lines.

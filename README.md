@@ -1,5 +1,7 @@
 # ZerPad
 
+[![Tests](https://github.com/anzher44/zerpad/actions/workflows/test.yml/badge.svg)](https://github.com/anzher44/zerpad/actions/workflows/test.yml)
+
 Free online PS5 controller tester: test, validate and recalibrate a DualSense or DualSense Edge in the browser. Checks stick drift, adaptive triggers, buttons, battery, gyroscope, factory info and usage history, and prints a one-page PDF report.
 
 Live version: https://anzher44.github.io/zerpad/
@@ -89,7 +91,7 @@ Plain HTML, CSS and JavaScript, no build step.
 - `calibration.js`: calibration steps
 - `assets/controllers/`: controller illustrations per edition (Gamepad Asset Pack, MIT)
 - `sw.js`, `manifest.webmanifest`: offline support
-- `test/mock-test.js`: end-to-end test with a simulated controller (Playwright)
+- `test/mock-test.js`, `test/bt-test.js`: end-to-end tests with a simulated controller over USB and Bluetooth (Playwright)
 
 Run locally:
 
@@ -97,11 +99,14 @@ Run locally:
 python3 -m http.server 8000
 ```
 
-Run the test:
+Run the tests (USB and Bluetooth, simulated controller):
 
 ```bash
 node test/mock-test.js
+node test/bt-test.js
 ```
+
+They also run on GitHub for every push.
 
 ## Acknowledgements
 
