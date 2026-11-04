@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ZerPad | Testeur de manette PS5 DualSense en ligne</title>
 <meta name="description" content="Testez une manette PS5 DualSense ou DualSense Edge dans le navigateur : dérive des sticks (drift), gâchettes adaptatives, boutons, batterie, gyroscope, infos usine, historique d'usage, calibration et rapport PDF. Gratuit, sans installation.">
-<meta name="theme-color" content="#f6f8fa">
+<meta name="theme-color" content="#eeece7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1012" media="(prefers-color-scheme: dark)">
 <link rel="canonical" href="https://anzher44.github.io/zerpad/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://anzher44.github.io/zerpad/">
@@ -103,6 +104,7 @@
   Connexion <b>Bluetooth</b> détectée : tout fonctionne sauf les tests audio (haut-parleur / micro), qui exigent l'USB.
 </div>
 
+<aside class="side">
 <nav class="tabs" role="tablist">
   <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-info" data-tab="info">Manette</button>
   <button class="tab" role="tab" aria-selected="false" aria-controls="tab-val" data-tab="val">Contrôle</button>
@@ -112,14 +114,17 @@
   <button class="tab" role="tab" aria-selected="false" aria-controls="tab-cal" data-tab="cal">Calibration</button>
   <button class="tab tab-aside" role="tab" aria-selected="false" aria-controls="tab-raw" data-tab="raw">Données brutes</button>
 </nav>
+<div id="sideDev" class="side-dev" aria-live="polite"></div>
+</aside>
 
 <div class="workspace">
 <!-- Infos -->
 <section role="tabpanel" id="tab-info" class="panel active">
+  <header class="ph"><span class="ph-n">01</span><h1>Manette</h1></header>
   <div class="card hero">
     <img id="padImg" class="hero-img idle" src="assets/controllers/00.webp" alt="" width="440" height="245">
     <div class="hero-info">
-      <h1 id="h-model" class="hero-model">Aucune manette connectée</h1>
+      <div id="h-model" class="hero-model">Aucune manette connectée</div>
       <div id="h-color" class="hero-color"></div>
       <dl id="h-facts" class="hero-facts"></dl>
       <button id="btnStartCheck" class="primary">Démarrer le contrôle</button>
@@ -171,6 +176,7 @@
 
 <!-- Inputs -->
 <section role="tabpanel" id="tab-live" class="panel">
+  <header class="ph"><span class="ph-n">03</span><h1>Entrées</h1></header>
   <div class="grid3">
     <div class="card">
       <h2>Boutons</h2>
@@ -211,6 +217,7 @@
 
 <!-- Outputs -->
 <section role="tabpanel" id="tab-out" class="panel">
+  <header class="ph"><span class="ph-n">04</span><h1>Sorties</h1></header>
   <div class="grid3">
     <div class="card">
       <h2>Vibrations</h2>
@@ -277,6 +284,7 @@
 
 <!-- Validation -->
 <section role="tabpanel" id="tab-val" class="panel">
+  <header class="ph"><span class="ph-n">02</span><h1>Contrôle</h1></header>
   <div class="card verdict-card">
     <div>
       <h2>Verdict</h2>
@@ -311,6 +319,7 @@
 
 <!-- Games -->
 <section role="tabpanel" id="tab-games" class="panel">
+  <header class="ph"><span class="ph-n">05</span><h1>Jeux</h1></header>
   <p class="small intro">Trois petits jeux pour prendre en main la manette et vérifier les commandes en conditions réelles. Les records restent dans ce navigateur.</p>
   <div class="grid3">
     <div class="card game">
@@ -344,6 +353,7 @@
 
 <!-- Calibration -->
 <section role="tabpanel" id="tab-cal" class="panel">
+  <header class="ph"><span class="ph-n">06</span><h1>Calibration</h1></header>
   <div class="card">
     <h2>Recalibration des sticks</h2>
     <p class="small" data-i18n-html>Corrige un <b>centre décalé</b> (dérive d'origine électrique) et une <b>amplitude incomplète</b>, comme le fait l'usine.
@@ -385,6 +395,7 @@
 
 <!-- Raw -->
 <section role="tabpanel" id="tab-raw" class="panel">
+  <header class="ph"><span class="ph-n">07</span><h1>Données brutes</h1></header>
   <div class="card">
     <h2>Dernier rapport d'entrée</h2>
     <pre id="rawInput" class="hex" tabindex="0">-</pre>

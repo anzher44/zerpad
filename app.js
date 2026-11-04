@@ -1,7 +1,7 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.4.0';
+  const VERSION = '2.5.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -211,6 +211,18 @@
     ].filter(x => x[1]) : [];
     $('h-facts').innerHTML = facts.map(x => '<div><dt>' + x[0] + '</dt><dd>' + esc(x[1]) + '</dd></div>').join('') +
       (on ? '<div><dt>' + tr('Batterie') + '</dt><dd id="h-bat">-</dd></div>' : '');
+    renderSide();
+  }
+  // Controller summary under the navigation, visible on every tab
+  function renderSide() {
+    const el = $('sideDev');
+    if (!ds.device) { el.innerHTML = ''; return; }
+    const f = ds.factory || {}, i = ds.info || {};
+    el.innerHTML = '<img src="' + padImage(f.colorCode) + '" alt="" width="176" height="98">' +
+      '<b>' + esc(i.model || 'DualSense') + '</b><span>' + esc(f.color || '') + '</span>' +
+      '<dl><div><dt>' + tr('Connexion') + '</dt><dd>' + (ds.transport === 'bt' ? 'Bluetooth' : 'USB') + '</dd></div>' +
+      '<div><dt>' + tr('Batterie') + '</dt><dd id="sd-bat">-</dd></div>' +
+      (f.serial ? '<div><dt>' + tr('N° de série') + '</dt><dd class="mono">' + esc(f.serial) + '</dd></div>' : '') + '</dl>';
   }
 
   // Counterfeit reasons come from dualsense.js in French; the year is the only variable part
@@ -391,6 +403,7 @@
       $('batFill').className = st.battery.pct != null && st.battery.pct <= 20 ? 'low' : '';
       $('i-charge').textContent = tr(st.battery.label);
       if ($('h-bat')) $('h-bat').textContent = (st.battery.pct != null ? st.battery.pct + ' %, ' : '') + tr(st.battery.label);
+      if ($('sd-bat')) $('sd-bat').textContent = (st.battery.pct != null ? st.battery.pct + ' %' : '-') + (st.battery.charging ? ' +' : '');
       $('i-jack').textContent = (st.plug.headphones ? tr('Casque détecté') : tr('Rien de branché')) + (st.plug.mic ? tr(', micro externe') : '') + (st.plug.micMuted ? tr(', micro coupé') : '') + '  (0x' + hex(st.plug.raw) + ')';
       $('i-usb').textContent = tr('données ') + yesNo(st.plug.usbData) + tr(', alimentation ') + yesNo(st.plug.usbPower);
       $('i-ts').textContent = st.sensorTs;
@@ -1080,7 +1093,7 @@
       el.className = 'test ' + t.status + (t === currentTest() ? ' current' : '');
       el.id = 'test-' + t.id;
       el.innerHTML =
-        '<div class="thead"><span class="num">' + (idx + 1) + '</span><h3>' + tr(t.title) + (t.required ? '' : ' <small>' + tr('(optionnel)') + '</small>') + '</h3>' +
+        '<div class="thead"><span class="num">' + String(idx + 1).padStart(2, '0') + '</span><h3>' + tr(t.title) + (t.required ? '' : ' <small>' + tr('(optionnel)') + '</small>') + '</h3>' +
         '<span class="badge ' + t.status + '">' + tr(STATUS_TXT[t.status]) + '</span></div>' +
         '<p class="small">' + tr(t.instructions) + '</p>' +
         '<p class="detail mono small"></p><div class="tact"></div>';

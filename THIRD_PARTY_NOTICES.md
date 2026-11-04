@@ -106,3 +106,8 @@ SOFTWARE.
 - SekaPsyka/GamepadTester (MIT): button bounce (chatter) detection.
 - remteh-by/dualsense-tester (proprietary, idea only, no code read into ZerPad): before/after report comparison.
 - Linux driver `hid-playstation.c`: input/output report format, IMU calibration.
+
+## IBM Plex Sans and IBM Plex Mono - https://github.com/IBM/plex
+
+Interface typefaces, served from `assets/fonts` (no external request). Copyright 2018 IBM Corp.,
+licensed under the SIL Open Font License 1.1; the full license is in `assets/fonts/OFL.txt`.

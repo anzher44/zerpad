@@ -96,6 +96,7 @@ Plain HTML, CSS and JavaScript, no build step.
 - `games.js`: the three games
 - `calibration.js`: calibration steps
 - `assets/controllers/`: controller illustrations per edition (Gamepad Asset Pack, MIT)
+- `assets/fonts/`: IBM Plex Sans and Mono (SIL Open Font License)
 - `sw.js`, `manifest.webmanifest`: offline support
 - `test/mock-test.js`, `test/bt-test.js`: end-to-end tests with a simulated controller over USB and Bluetooth (Playwright)
 - `test/glitch-test.js`: signal jump detection (clean sweep, real stick release, injected spike)
@@ -120,7 +121,7 @@ They also run on GitHub for every push.
 
 ## Acknowledgements
 
-Controller illustrations from the [Gamepad Asset Pack](https://github.com/AL2009man/Gamepad-Asset-Pack) by Al. Lopez (MIT). Input, output and calibration parsing follow the Linux `hid-playstation` driver. Thanks to its authors and to [daidr/dualsense-tester](https://github.com/daidr/dualsense-tester) and [dualshock-tools](https://github.com/dualshock-tools/dualshock-tools.github.io) for documenting the DualSense protocol. License notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Typefaces: IBM Plex (SIL Open Font License). Controller illustrations from the [Gamepad Asset Pack](https://github.com/AL2009man/Gamepad-Asset-Pack) by Al. Lopez (MIT). Input, output and calibration parsing follow the Linux `hid-playstation` driver. Thanks to its authors and to [daidr/dualsense-tester](https://github.com/daidr/dualsense-tester) and [dualshock-tools](https://github.com/dualshock-tools/dualshock-tools.github.io) for documenting the DualSense protocol. License notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## License
 
