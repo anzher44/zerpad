@@ -20,12 +20,26 @@
   });
   const seen = new Set();
   let index = null, drift = null;
+  // Outer contour per stick in 72 angle sectors, same method as the full test
+  const BINS = 72;
+  let bins = [new Float32Array(BINS), new Float32Array(BINS)];
+  function track(k, x, y) {
+    const r = Math.hypot(x, y);
+    if (r <= 0.5) return;
+    const b = Math.floor(((Math.atan2(y, x) + Math.PI) / (2 * Math.PI)) * BINS) % BINS;
+    if (r > bins[k][b]) bins[k][b] = r;
+  }
+  function circ(k) {
+    let n = 0, sum = 0;
+    for (const v of bins[k]) if (v > 0) { n++; sum += Math.abs(v - 1); }
+    return { coverage: n / BINS, error: n ? sum / n * 100 : null };
+  }
 
   const pad = () => { const p = index == null ? null : navigator.getGamepads()[index]; return p && p.connected ? p : null; };
   window.addEventListener('gamepadconnected', e => { if (index == null) index = e.gamepad.index; });
   window.addEventListener('gamepaddisconnected', e => { if (e.gamepad.index === index) { index = null; seen.clear(); } });
 
-  function stick(cv, x, y) {
+  function stick(cv, x, y, k) {
     const r = Math.min(cv.clientWidth, 180), dpr = window.devicePixelRatio || 1;
     if (cv.width !== r * dpr) { cv.width = cv.height = r * dpr; }
     const c = cv.getContext('2d');
@@ -35,6 +49,16 @@
     c.strokeStyle = css('--line2') || '#334'; c.lineWidth = 1;
     c.beginPath(); c.arc(m, m, R, 0, Math.PI * 2); c.stroke();
     c.beginPath(); c.moveTo(m - R, m); c.lineTo(m + R, m); c.moveTo(m, m - R); c.lineTo(m, m + R); c.stroke();
+    c.strokeStyle = css('--muted') || '#889'; c.beginPath();
+    let first = true;
+    for (let i = 0; i <= BINS; i++) {
+      const v = bins[k][i % BINS]; if (!v) { first = true; continue; }
+      const a = ((i % BINS) + 0.5) / BINS * 2 * Math.PI - Math.PI;
+      const px = m + Math.cos(a) * v * R, py = m + Math.sin(a) * v * R;
+      if (first) c.moveTo(px, py); else c.lineTo(px, py);
+      first = false;
+    }
+    c.stroke();
     c.fillStyle = css('--primary') || '#2563eb';
     c.beginPath(); c.arc(m + x * R, m + y * R, 6, 0, Math.PI * 2); c.fill();
   }
@@ -47,7 +71,11 @@
       : tr('Branchez la manette, puis appuyez sur un bouton pour qu\'elle apparaisse.');
     if (!p) return;
     const ax = i => p.axes[i] || 0;
-    stick($('qStickL'), ax(0), ax(1)); stick($('qStickR'), ax(2), ax(3));
+    if (!drift) { track(0, ax(0), ax(1)); track(1, ax(2), ax(3)); }
+    stick($('qStickL'), ax(0), ax(1), 0); stick($('qStickR'), ax(2), ax(3), 1);
+    const ct = (n, k) => { const r = circ(k); return r.error == null ? '' : n + tr(' : ') + r.error.toFixed(1) + ' % (' + tr('contour couvert ') + Math.round(r.coverage * 100) + ' %)'; };
+    const cl = ct(tr('Gauche'), 0), cr = ct(tr('Droit'), 1);
+    $('qCirc').textContent = cl || cr ? tr('Circularité, faites tourner les sticks en butée') + tr(' : ') + [cl, cr].filter(Boolean).join(' | ') : '';
     $('qValL').textContent = (ax(0) * 100).toFixed(0) + ' / ' + (ax(1) * 100).toFixed(0);
     $('qValR').textContent = (ax(2) * 100).toFixed(0) + ' / ' + (ax(3) * 100).toFixed(0);
     const tv = i => (p.buttons[i] ? p.buttons[i].value : 0);
@@ -91,6 +119,8 @@
     $('qDrift').disabled = true;
     $('qDriftRes').textContent = tr('Mesure en cours, ne touchez pas les sticks…');
   });
+
+  $('qClear').addEventListener('click', () => { bins = [new Float32Array(BINS), new Float32Array(BINS)]; seen.clear(); });
 
   $('qRumble').addEventListener('click', () => {
     const p = pad(), a = p && p.vibrationActuator;

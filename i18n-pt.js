@@ -1,5 +1,7 @@
 // Portuguese translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).pt = {
+  "contour couvert ": "contorno coberto ",
+  "Circularité, faites tourner les sticks en butée": "Circularidade, rode os sticks encostados ao limite",
   "Contrôlé avec ZerPad le ": "Verificado com o ZerPad em ",
   "Résumé copié": "Resumo copiado",
   "Copier le résumé": "Copiar o resumo",

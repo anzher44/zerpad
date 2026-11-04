@@ -1,5 +1,7 @@
 // German translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).de = {
+  "contour couvert ": "Kontur abgedeckt ",
+  "Circularité, faites tourner les sticks en butée": "Rundheit, Sticks am Anschlag drehen",
   "Contrôlé avec ZerPad le ": "Geprüft mit ZerPad am ",
   "Résumé copié": "Zusammenfassung kopiert",
   "Copier le résumé": "Zusammenfassung kopieren",

@@ -1,5 +1,7 @@
 // Italian translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).it = {
+  "contour couvert ": "contorno coperto ",
+  "Circularité, faites tourner les sticks en butée": "Circolarità, ruota gli stick fino al bordo",
   "Contrôlé avec ZerPad le ": "Verificato con ZerPad il ",
   "Résumé copié": "Riepilogo copiato",
   "Copier le résumé": "Copia il riepilogo",

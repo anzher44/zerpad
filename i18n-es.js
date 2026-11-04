@@ -1,5 +1,7 @@
 // Spanish translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).es = {
+  "contour couvert ": "contorno cubierto ",
+  "Circularité, faites tourner les sticks en butée": "Circularidad, gira los sticks hasta el tope",
   "Contrôlé avec ZerPad le ": "Comprobado con ZerPad el ",
   "Résumé copié": "Resumen copiado",
   "Copier le résumé": "Copiar el resumen",
