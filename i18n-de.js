@@ -1,5 +1,7 @@
 // German translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).de = {
+  ", plus long écart ": ", längste Lücke ",
+  " (liaison instable)": " (instabile Verbindung)",
  "Connexion annulée ou impossible : ": "Verbindung abgebrochen oder nicht möglich: ",
  "Manette éteinte": "Controller ausgeschaltet",
  "Extinction impossible : ": "Ausschalten nicht möglich: ",

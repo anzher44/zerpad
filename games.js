@@ -129,7 +129,7 @@
       }
       this.next(now);
     },
-    draw(now) {
+    draw() {
       const { c, w, h } = ctxOf($('gReactCv'));
       c.clearRect(0, 0, w, h);
       if (!this.running) { centerText(c, w, h, [tr('Appuyez le plus vite possible sur le bouton affiché.'), tr('15 manches, chaque erreur coûte 100 ms.')]); return; }

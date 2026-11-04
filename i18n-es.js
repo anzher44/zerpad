@@ -1,5 +1,7 @@
 // Spanish translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).es = {
+  ", plus long écart ": ", mayor intervalo ",
+  " (liaison instable)": " (conexión inestable)",
  "Connexion annulée ou impossible : ": "Conexión cancelada o imposible: ",
  "Manette éteinte": "Mando apagado",
  "Extinction impossible : ": "No se puede apagar: ",

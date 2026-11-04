@@ -111,7 +111,7 @@
       this.reportCount = 0;
       this.seqStats = { n: 0, ones: 0, lost: 0 };   // input report sequence counter, used for packet loss
       this.reportRate = 0;
-      this._rateT0 = 0; this._rateN = 0;
+      this._rateT0 = 0; this._rateN = 0; this._prevT = 0; this._gapW = 0; this.maxGap = 0;
       this._btSeq = 0;
       this._lightbarSetupDone = false;
       this._rumbleStop = 0; this._rumbleStart = false;
@@ -505,9 +505,12 @@
       this.lastRaw = { id, data: u8.slice() };
       this.reportCount++;
       this._rateN++;
+      if (this._prevT) this._gapW = Math.max(this._gapW || 0, st.time - this._prevT);
+      this._prevT = st.time;
       if (st.time - this._rateT0 >= 1000) {
         this.reportRate = Math.round(this._rateN * 1000 / (st.time - this._rateT0 || 1));
-        this._rateN = 0; this._rateT0 = st.time;
+        this.maxGap = this._gapW || 0;                // longest pause between two reports in the last second
+        this._rateN = 0; this._rateT0 = st.time; this._gapW = 0;
       }
       this.dispatchEvent(new CustomEvent('state', { detail: st }));
     }

@@ -1,7 +1,7 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.6.1';
+  const VERSION = '2.6.2';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -411,7 +411,8 @@
       $('i-ts').textContent = st.sensorTs;
     }
     $('chatterTxt').textContent = tr('Rebonds de boutons : ') + chatterText(chatter);
-    $('i-rate').textContent = ds.reportRate ? ds.reportRate + tr(' rapports/s (≈ ') + (1000 / ds.reportRate).toFixed(1) + ' ms)' : '-';
+    $('i-rate').textContent = ds.reportRate ? ds.reportRate + tr(' rapports/s (≈ ') + (1000 / ds.reportRate).toFixed(1) + ' ms)' +
+      (ds.maxGap ? tr(', plus long écart ') + ds.maxGap.toFixed(0) + ' ms' + (ds.maxGap > 50 ? tr(' (liaison instable)') : '') : '') : '-';
     $('i-mode').textContent = ds.simpleMode ? tr('Simplifié (Bluetooth sans capteurs)') : tr('Complet (rapport 0x') + hex(st.reportId) + ')';
     if (now - lastRawDraw > 100 && ds.lastRaw) {
       lastRawDraw = now;
@@ -1229,7 +1230,7 @@
         hardware: i.hwVersion != null ? '0x' + hex(i.hwVersion, 8) : null,
         firmwareBuild: i.buildDate ? i.buildDate + ' ' + i.buildTime : null,
         battery: ds.state && ds.state.battery ? { percent: ds.state.battery.pct, state: tr(ds.state.battery.label) } : null,
-        reportRate: ds.reportRate,
+        reportRate: ds.reportRate, maxGap: ds.maxGap,
         imuCalibrationValid: ds.calib ? ds.calib.valid : null,
         boardModel: i.boardModel || null,
       },

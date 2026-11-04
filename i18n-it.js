@@ -1,5 +1,7 @@
 // Italian translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).it = {
+  ", plus long écart ": ", intervallo massimo ",
+  " (liaison instable)": " (collegamento instabile)",
  "Connexion annulée ou impossible : ": "Connessione annullata o impossibile: ",
  "Manette éteinte": "Controller spento",
  "Extinction impossible : ": "Impossibile spegnere: ",
