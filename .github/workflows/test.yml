@@ -23,5 +23,7 @@ jobs:
         run: node test/glitch-test.js
       - name: Quick test without WebHID
         run: node test/quick-test.js
+      - name: ZP Arena game
+        run: node test/arena-test.js
       - name: Translations
         run: node test/i18n-check.js

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ZP Arena · ZerPad</title>
+<meta name="description" content="ZP Arena, jeu d'arcade gratuit dans le navigateur, jouable à la manette DualSense (gâchettes adaptatives, vibrations, LED), avec une autre manette ou au clavier.">
+<meta name="theme-color" content="#070b15">
+<link rel="canonical" href="https://anzher44.github.io/zerpad/play.html">
+<meta property="og:title" content="ZP Arena · ZerPad">
+<meta property="og:image" content="https://anzher44.github.io/zerpad/og.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="stylesheet" href="style.css">
+<style>
+  body { min-height: 100vh; display: flex; flex-direction: column; }
+  .arena-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 10px; }
+  .arena-box { position: relative; width: min(100%, calc((100vh - 150px) * 16 / 9)); aspect-ratio: 16 / 9; }
+  #arena { width: 100%; height: 100%; display: block; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); cursor: crosshair; touch-action: none; }
+  .arena-box:fullscreen { width: 100vw; height: 100vh; aspect-ratio: auto; display: grid; place-items: center; background: #000; }
+  .arena-box:fullscreen #arena { width: min(100vw, 100vh * 16 / 9); height: auto; aspect-ratio: 16 / 9; border-radius: 0; border: 0; }
+  .arena-bar { width: min(100%, calc((100vh - 150px) * 16 / 9)); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .arena-bar .small { margin: 0; }
+  a.brandlink { color: inherit; text-decoration: none; }
+  .top .pill { max-width: none; overflow: visible; }
+</style>
+<script>
+(function () {
+  var all = ['fr', 'en', 'es', 'de', 'it', 'pt'], l = null;
+  try { l = new URLSearchParams(location.search).get('lang') || localStorage.getItem('zerpad.lang'); } catch (e) { /* storage unavailable */ }
+  if (all.indexOf(l) < 0) {
+    l = 'en';
+    var nav = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+    for (var i = 0; i < nav.length; i++) { var c = String(nav[i]).slice(0, 2).toLowerCase(); if (all.indexOf(c) >= 0) { l = c; break; } }
+  }
+  if (l !== 'fr') {
+    document.documentElement.classList.add('i18n-wait');
+    setTimeout(function () { document.documentElement.classList.remove('i18n-wait'); }, 2000);
+  }
+})();
+</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand brandlink" id="backHome" href="./">
+    <img class="logo" src="icon.svg" alt="" width="40" height="40">
+    <div><div class="name">ZP Arena</div><p class="sub" id="arenaSub"></p></div>
+  </a>
+  <div class="conn">
+    <span id="padStatus" class="pill off"></span>
+    <button id="btnPad" class="primary" hidden></button>
+    <select id="selLang" class="lang" aria-label="Langue / Language"></select>
+  </div>
+</header>
+<main class="arena-wrap">
+  <div class="arena-box" id="arenaBox"><canvas id="arena"></canvas></div>
+  <div class="arena-bar">
+    <p class="small" id="arenaHelp"></p>
+    <div class="row">
+      <button id="btnSound" class="ghost small"></button>
+      <button id="btnFull" class="ghost small"></button>
+    </div>
+  </div>
+</main>
+<script src="i18n.js"></script>
+<script>I18N.init();</script>
+<script src="dualsense.js"></script>
+<script src="arena.js"></script>
+</body>
+</html>

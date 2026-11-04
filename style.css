@@ -363,3 +363,12 @@ pre.log { max-height: 260px; overflow-y: auto; white-space: pre-wrap; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
 }
 .kbd-hint { flex-basis: 100%; margin: 4px 0 0; }
+
+/* ZP Arena promotion in the Games tab */
+.arena-promo { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; border-color: var(--btn-border); }
+.arena-promo > div { flex: 1 1 320px; }
+.arena-promo h2 { margin: 0 0 6px; font-size: 18px; }
+.arena-promo p { margin: 0; }
+a.btnlink { display: inline-block; padding: 9px 16px; border-radius: 10px; font-weight: 600; text-decoration: none; }
+a.btnlink.primary { background: var(--primary); color: var(--on-primary); }
+a.btnlink.primary:hover { background: var(--primary-hover); }

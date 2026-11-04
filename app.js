@@ -3,7 +3,7 @@
   'use strict';
   // Numbers in the reader's format (3,2 in French, 3.2 in English)
   const nf = (v, d) => Number(v).toLocaleString(I18N.locale, d == null ? { maximumFractionDigits: 2 } : { minimumFractionDigits: d, maximumFractionDigits: d });
-  const VERSION = '2.12.0';
+  const VERSION = '3.0.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
