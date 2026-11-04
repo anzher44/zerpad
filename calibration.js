@@ -27,7 +27,7 @@
   }
   function renderReq() {
     const req = requirements();
-    $('calReq').innerHTML = req.map(r => '<li class="' + (r.ok ? 'ok' : 'bad') + '">' + (r.ok ? 'OK' : tr('NON')) + ' : ' + r.label + '</li>').join('');
+    $('calReq').innerHTML = req.map(r => '<li class="' + (r.ok ? 'ok' : 'bad') + '">' + (r.ok ? 'OK' : tr('NON')) + tr(' : ') + r.label + '</li>').join('');
     return req.every(r => r.ok);
   }
   async function refreshNvs() {

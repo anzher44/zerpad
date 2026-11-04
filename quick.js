@@ -81,7 +81,7 @@
     if (res.some(r => r.moved)) { $('qDriftRes').textContent = tr('Mouvement détecté : relancez sans toucher les sticks.'); return; }
     const q = r => r.noise > 1.5 ? tr('potentiomètre usé') : r.offset <= 1.25 ? tr('parfait') : r.offset <= 3.5 ? tr('bon')
       : r.offset <= 6 ? tr('léger décalage, calibration conseillée') : tr('DÉRIVE');
-    const f = (n, r) => n + ' : ' + r.offset.toFixed(1) + ' % (' + q(r) + ')';
+    const f = (n, r) => n + tr(' : ') + r.offset.toFixed(1) + ' % (' + q(r) + ')';
     $('qDriftRes').textContent = f(tr('Gauche'), res[0]) + ' | ' + f(tr('Droit'), res[1]) +
       tr('. Le navigateur peut appliquer sa propre zone morte : la valeur exacte demande Chrome ou Edge.');
   }

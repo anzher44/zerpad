@@ -493,7 +493,7 @@
       }
     });
     $('touchTxt').textContent = (st.touches || []).map((t, k) =>
-      tr('Doigt ') + (k + 1) + ' : ' + (t.active ? 'x=' + t.x + ' y=' + t.y + ' (id ' + t.id + ')' : tr('aucun'))).join(', ') +
+      tr('Doigt ') + (k + 1) + tr(' : ') + (t.active ? 'x=' + t.x + ' y=' + t.y + ' (id ' + t.id + ')' : tr('aucun'))).join(', ') +
       (st.buttons.touchpad ? ', CLIC' : '');
   }
 
@@ -808,7 +808,7 @@
           const ok = r => r.offset <= 6 && r.noise <= 1.5;
           const q = r => r.noise > 1.5 ? tr('potentiomètre usé') : r.offset <= 1.25 ? tr('parfait') : r.offset <= 3.5 ? tr('bon')
             : r.offset <= 6 ? tr('léger décalage, calibration conseillée') : tr('DÉRIVE');
-          const f = (name, r) => name + ' : ' + r.offset + ' % (' + q(r) + tr('), bruit ') + r.noise + tr(' %, zone morte conseillée ') + r.deadzone + ' %';
+          const f = (name, r) => name + tr(' : ') + r.offset + ' % (' + q(r) + tr('), bruit ') + r.noise + tr(' %, zone morte conseillée ') + r.deadzone + ' %';
           this.detail = (moved ? tr('Mesure instable. ') : '') + f(tr('Gauche'), res.L) + ' | ' + f(tr('Droit'), res.R);
           finish(this, !moved && ok(res.L) && ok(res.R) && d.s.length > 20);
         },
@@ -882,7 +882,7 @@
           const ok = v => v && v.count >= 5 && v.restMax <= 8 && v.overMedian < 18;
           const txt = [tr('Gauche'), tr('Droit')].map((nm, i) => {
             const v = i ? b : a;
-            return nm + ' : ' + (v ? v.count + tr('/5 lâchers, retour ') + v.restMax + tr(' %, rebond ') + v.overMedian + tr(' %, stable en ') + v.settleMedian + ' ms' + (v.settleMedian > 300 ? tr(' (lent)') : '') : tr('0/5 lâchers'));
+            return nm + tr(' : ') + (v ? v.count + tr('/5 lâchers, retour ') + v.restMax + tr(' %, rebond ') + v.overMedian + tr(' %, stable en ') + v.settleMedian + ' ms' + (v.settleMedian > 300 ? tr(' (lent)') : '') : tr('0/5 lâchers'));
           }).join(' | ');
           this.data.result = { left: a, right: b };
           if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }

@@ -1,5 +1,6 @@
 // Spanish translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).es = {
+  " : ": ": ",
   " (disposition non standard)": " (distribución no estándar)",
   "Branchez la manette, puis appuyez sur un bouton pour qu'elle apparaisse.": "Conecta el mando y pulsa un botón para que aparezca.",
   "{n} / {t} boutons vérifiés": "{n} / {t} botones comprobados",

@@ -1,5 +1,6 @@
 // German translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).de = {
+  " : ": ": ",
   " (disposition non standard)": " (nicht standardmäßige Belegung)",
   "Branchez la manette, puis appuyez sur un bouton pour qu'elle apparaisse.": "Controller anschließen und eine Taste drücken, damit er erscheint.",
   "{n} / {t} boutons vérifiés": "{n} / {t} Tasten geprüft",
