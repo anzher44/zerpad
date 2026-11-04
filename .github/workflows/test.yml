@@ -19,3 +19,7 @@ jobs:
         run: node test/mock-test.js
       - name: Bluetooth controller
         run: node test/bt-test.js
+      - name: Signal jump detection
+        run: node test/glitch-test.js
+      - name: Translations
+        run: node test/i18n-check.js

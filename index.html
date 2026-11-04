@@ -34,6 +34,22 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
+<script>
+// Hide the page until a non-French dictionary is applied, so the French text never flashes
+(function () {
+  var all = ['fr', 'en', 'es', 'de', 'it', 'pt'], l = null;
+  try { l = localStorage.getItem('zerpad.lang') || localStorage.getItem('zherpad.lang'); } catch (e) { /* storage unavailable */ }
+  if (all.indexOf(l) < 0) {
+    l = 'en';
+    var nav = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ''];
+    for (var i = 0; i < nav.length; i++) { var c = String(nav[i]).slice(0, 2).toLowerCase(); if (all.indexOf(c) >= 0) { l = c; break; } }
+  }
+  if (l !== 'fr') {
+    document.documentElement.classList.add('i18n-wait');
+    setTimeout(function () { document.documentElement.classList.remove('i18n-wait'); }, 2000);
+  }
+})();
+</script>
 </head>
 <body>
 <header class="top">
@@ -47,7 +63,7 @@
   <div class="conn">
     <span id="connStatus" class="pill off">Non connectée</span>
     <button id="btnConnect" class="primary">Connecter la manette</button>
-    <button id="btnLang" class="ghost small" title="Langue / Language">EN</button>
+    <select id="selLang" class="lang" aria-label="Langue / Language"></select>
     <button id="btnPowerOff" class="ghost" hidden>Éteindre</button>
     <button id="btnDisconnect" class="ghost" hidden>Déconnecter</button>
   </div>
@@ -92,6 +108,7 @@
   <button class="tab" role="tab" aria-selected="false" aria-controls="tab-val" data-tab="val">Contrôle</button>
   <button class="tab" role="tab" aria-selected="false" aria-controls="tab-live" data-tab="live">Entrées</button>
   <button class="tab" role="tab" aria-selected="false" aria-controls="tab-out" data-tab="out">Sorties</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-games" data-tab="games">Jeux</button>
   <button class="tab" role="tab" aria-selected="false" aria-controls="tab-cal" data-tab="cal">Calibration</button>
   <button class="tab tab-aside" role="tab" aria-selected="false" aria-controls="tab-raw" data-tab="raw">Données brutes</button>
 </nav>
@@ -291,6 +308,39 @@
   </div>
 </section>
 
+<!-- Games -->
+<section role="tabpanel" id="tab-games" class="panel">
+  <p class="small intro">Trois petits jeux pour prendre en main la manette et vérifier les commandes en conditions réelles. Les records restent dans ce navigateur.</p>
+  <div class="grid3">
+    <div class="card game">
+      <h2>Réflexes</h2>
+      <p class="small">Un symbole s'affiche : appuyez sur le bouton correspondant le plus vite possible. La barre lumineuse passe au vert ou au rouge, la manette vibre à chaque erreur.</p>
+      <canvas id="gReactCv"></canvas>
+      <div class="row"><button id="gReactStart" class="primary">Jouer</button></div>
+      <p id="gReactStatus" class="gstatus"></p>
+      <p id="gReactBest" class="small"></p>
+    </div>
+    <div class="card game">
+      <h2>Cible</h2>
+      <p class="small">Suivez le cercle avec le stick. Score : part du temps passé dans la cible. Les LED joueur indiquent le temps écoulé.</p>
+      <canvas id="gTrackCv"></canvas>
+      <div class="row"><button id="gTrackStart" class="primary">Jouer</button>
+        <label class="row">Stick <select id="gTrackStick"><option value="L">Gauche</option><option value="R">Droit</option></select></label></div>
+      <p id="gTrackStatus" class="gstatus"></p>
+      <p id="gTrackBest" class="small"></p>
+    </div>
+    <div class="card game">
+      <h2>Dosage</h2>
+      <p class="small">Maintenez la gâchette dans la zone verte malgré la résistance de la gâchette adaptative. Un exercice de précision sur toute la course.</p>
+      <canvas id="gDoseCv"></canvas>
+      <div class="row"><button id="gDoseStart" class="primary">Jouer</button>
+        <label class="row">Gâchette <select id="gDoseTrig"><option value="r2">R2</option><option value="l2">L2</option></select></label></div>
+      <p id="gDoseStatus" class="gstatus"></p>
+      <p id="gDoseBest" class="small"></p>
+    </div>
+  </div>
+</section>
+
 <!-- Calibration -->
 <section role="tabpanel" id="tab-cal" class="panel">
   <div class="card">
@@ -358,11 +408,11 @@
   <a href="https://github.com/anzher44/zerpad">Code source</a>
 </footer>
 
-<script src="i18n-en.js"></script>
 <script src="i18n.js"></script>
-<script>I18N.collect(); I18N.applyStatic(); I18N.suggest(); document.getElementById('btnLang').addEventListener('click', () => I18N.setLang(I18N.lang === 'fr' ? 'en' : 'fr'));</script>
+<script>I18N.init();</script>
 <script src="dualsense.js"></script>
 <script src="app.js"></script>
 <script src="calibration.js"></script>
+<script src="games.js"></script>
 </body>
 </html>

@@ -1,30 +1,57 @@
-// Interface language. French strings are the keys; i18n-en.js maps them to English.
+// Interface language. French strings are the keys; i18n-<lang>.js files map them to each language
+// and are loaded only when that language is chosen.
 (function () {
   'use strict';
   const KEY = 'zerpad.lang', SUGGEST_KEY = 'zerpad.langSuggest';
+  const LANGS = {
+    fr: { name: 'Français', locale: 'fr-FR' },
+    en: { name: 'English', locale: 'en-US' },
+    es: { name: 'Español', locale: 'es-ES' },
+    de: { name: 'Deutsch', locale: 'de-DE' },
+    it: { name: 'Italiano', locale: 'it-IT' },
+    pt: { name: 'Português', locale: 'pt-PT' },
+  };
   const store = {
     get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
   };
+  const dicts = window.I18N_DICT = window.I18N_DICT || {};
 
-  // First supported language in the browser preference list (fr or en), English otherwise
+  // First supported language in the browser preference list, English otherwise
   function browserLang() {
     const list = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || '']);
     for (const l of list) {
-      if (/^fr\b/i.test(l)) return 'fr';
-      if (/^en\b/i.test(l)) return 'en';
+      const code = String(l).slice(0, 2).toLowerCase();
+      if (LANGS[code]) return code;
     }
     return 'en';
   }
   let lang = store.get(KEY) || store.get('zherpad.lang');
-  if (lang !== 'fr' && lang !== 'en') lang = browserLang();
+  if (!LANGS[lang]) lang = browserLang();
 
   // tr('Texte {n}', { n: 3 })
   function tr(s, vars) {
     if (s == null) return s;
-    let out = lang === 'en' ? (window.I18N_EN[s] ?? s) : s;
+    const d = dicts[lang];
+    let out = lang !== 'fr' && d && d[s] != null ? d[s] : s;
     if (vars) out = out.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
     return out;
+  }
+
+  // Loads i18n-<lang>.js once
+  const loading = {};
+  function load(l) {
+    if (l === 'fr' || dicts[l]) return Promise.resolve();
+    if (!loading[l]) {
+      loading[l] = new Promise((resolve, reject) => {
+        const sc = document.createElement('script');
+        sc.src = 'i18n-' + l + '.js';
+        sc.onload = resolve;
+        sc.onerror = () => { delete loading[l]; reject(new Error('cannot load ' + sc.src)); };
+        document.head.appendChild(sc);
+      });
+    }
+    return loading[l];
   }
 
   // Static page text: remember the French original of every text node and attribute once
@@ -34,7 +61,7 @@
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: n => {
         if (!/[A-Za-zÀ-ÿ]{2}/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
-        if (n.parentElement.closest('[data-i18n-html], script, style, pre, .print-only')) return NodeFilter.FILTER_REJECT;
+        if (n.parentElement.closest('[data-i18n-html], script, style, pre, .print-only, #selLang')) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });
@@ -51,23 +78,41 @@
     }
     for (const [el, a, orig] of attrs) el.setAttribute(a, tr(orig));
     document.documentElement.lang = lang;
-    const b = document.getElementById('btnLang');
-    if (b) b.textContent = lang === 'fr' ? 'EN' : 'FR';
+    const sel = document.getElementById('selLang');
+    if (sel) sel.value = lang;
   }
-  function setLang(l) {
-    lang = l;
-    store.set(KEY, l);
+  function apply() {
     applyStatic();
-    const bar = document.getElementById('langSuggest');
-    if (bar && lang === browserLang()) bar.remove();
     document.dispatchEvent(new Event('langchange'));
   }
+  async function setLang(l) {
+    if (!LANGS[l]) return;
+    try { await load(l); } catch (e) { return; }
+    lang = l;
+    store.set(KEY, l);
+    const bar = document.getElementById('langSuggest');
+    if (bar) bar.remove();
+    apply();
+  }
 
-  // Offers the browser language when the page is shown in the other one (for example after an
+  // Language menu in the header
+  function initMenu() {
+    const sel = document.getElementById('selLang');
+    if (!sel) return;
+    sel.innerHTML = Object.entries(LANGS).map(([k, v]) => '<option value="' + k + '" lang="' + k + '">' + v.name + '</option>').join('');
+    sel.value = lang;
+    sel.addEventListener('change', () => setLang(sel.value));
+  }
+
+  // Offers the browser language when the page is shown in another one (for example after an
   // earlier manual choice). The offer is written in the browser language so it can be understood.
   const OFFER = {
     fr: ['Votre navigateur est en français. Afficher la page en français ?', 'Passer en français', 'Non merci'],
     en: ['Your browser is set to English. Show this page in English?', 'Switch to English', 'No thanks'],
+    es: ['Tu navegador está en español. ¿Mostrar la página en español?', 'Cambiar a español', 'No, gracias'],
+    de: ['Ihr Browser ist auf Deutsch eingestellt. Seite auf Deutsch anzeigen?', 'Auf Deutsch umstellen', 'Nein, danke'],
+    it: ['Il tuo browser è in italiano. Mostrare la pagina in italiano?', 'Passa all\'italiano', 'No, grazie'],
+    pt: ['O seu navegador está em português. Mostrar a página em português?', 'Mudar para português', 'Não, obrigado'],
   };
   function suggest() {
     const want = browserLang();
@@ -87,6 +132,23 @@
     top.parentNode.insertBefore(bar, top.nextSibling);
   }
 
+  // Page start: French text is already in the HTML; another language is applied once its file is loaded
+  function init() {
+    collect();
+    initMenu();
+    document.documentElement.lang = lang;
+    const show = () => document.documentElement.classList.remove('i18n-wait');
+    if (lang !== 'fr') load(lang).then(apply, () => { lang = 'fr'; applyStatic(); }).then(show);
+    else show();
+    suggest();
+  }
+
   window.tr = tr;
-  window.I18N = { get lang() { return lang; }, setLang, collect, applyStatic, suggest, browserLang };
+  window.I18N = {
+    get lang() { return lang; },
+    get locale() { return LANGS[lang].locale; },
+    langs: LANGS, setLang, collect, applyStatic, suggest, browserLang, init, ready: () => load(lang),
+    // French originals of the static page text (used by the translation check)
+    staticKeys: () => [...htmlNodes.map(x => x[1]), ...textNodes.map(x => x[1].replace(/\s+/g, ' ').trim()), ...attrs.map(x => x[2])],
+  };
 })();

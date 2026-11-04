@@ -1,6 +1,6 @@
 // ZerPad service worker: caches the site so it works offline.
-const CACHE = 'zerpad-v10';
-const FILES = ['./', 'index.html', 'style.css', 'i18n-en.js', 'i18n.js', 'dualsense.js', 'app.js', 'calibration.js', 'icon.svg', 'manifest.webmanifest'];
+const CACHE = 'zerpad-v11';
+const FILES = ['./', 'index.html', 'style.css', 'i18n.js', 'i18n-en.js', 'i18n-es.js', 'i18n-de.js', 'i18n-it.js', 'i18n-pt.js', 'dualsense.js', 'app.js', 'calibration.js', 'games.js', 'icon.svg', 'manifest.webmanifest'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });

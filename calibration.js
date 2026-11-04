@@ -27,7 +27,7 @@
   }
   function renderReq() {
     const req = requirements();
-    $('calReq').innerHTML = req.map(r => '<li>' + (r.ok ? 'OK' : 'NON') + ' : ' + r.label + '</li>').join('');
+    $('calReq').innerHTML = req.map(r => '<li class="' + (r.ok ? 'ok' : 'bad') + '">' + (r.ok ? 'OK' : tr('NON')) + ' : ' + r.label + '</li>').join('');
     return req.every(r => r.ok);
   }
   async function refreshNvs() {
@@ -39,7 +39,7 @@
   $('calAck').addEventListener('change', renderButtons);
   ds.addEventListener('ready', () => { unsaved = false; before = after = null; renderCompare(); setTimeout(refreshNvs, 3000); });
   ds.addEventListener('factory', renderReq);
-  ds.addEventListener('closed', () => { busy = false; unsaved = false; nvs = null; renderReq(); renderButtons(); setStep(tr('Manette déconnectée.')); });
+  ds.addEventListener('closed', () => { busy = false; unsaved = false; nvs = null; renderReq(); renderButtons(); setStep(() => tr('Manette déconnectée.')); });
   document.querySelector('.tab[data-tab=cal]').addEventListener('click', () => { refreshNvs(); renderButtons(); });
 
   // Center measurement
@@ -63,10 +63,10 @@
   }
   $('calMeasure').addEventListener('click', async () => {
     if (!ds.device || busy) return;
-    setStep(tr('Mesure en cours : ne touchez pas les sticks…'));
+    setStep(() => tr('Mesure en cours : ne touchez pas les sticks…'));
     const m = await measure();
     if (unsaved) after = m; else before = m;
-    renderCompare(); setStep(tr('Mesure terminée.'));
+    renderCompare(); setStep(() => tr('Mesure terminée.'));
   });
 
   // Waits until both sticks rest near the center and stay still
@@ -86,7 +86,9 @@
   }
 
   // UI helpers
-  function setStep(html) { $('calStep').innerHTML = html; }
+  // The step text is kept as a function so that it can be rebuilt in another language
+  let stepFn = null;
+  function setStep(fn) { stepFn = typeof fn === 'function' ? fn : () => fn; $('calStep').innerHTML = stepFn(); }
   function actions(list) {
     const box = $('calActions'); box.innerHTML = '';
     for (const [label, cls, fn, disabled] of list) {
@@ -110,7 +112,7 @@
   }
   function fail(e) {
     busy = false;
-    setStep(tr('<b class="big txt-bad">Échec : ') + e.message + tr('</b>Aucune sauvegarde définitive n\'a été faite. Pour revenir à l\'ancienne calibration, cliquez « Annuler (redémarrer la manette) ».'));
+    setStep(() => tr('<b class="big txt-bad">Échec : ') + e.message + tr('</b>Aucune sauvegarde définitive n\'a été faite. Pour revenir à l\'ancienne calibration, cliquez « Annuler (redémarrer la manette) ».'));
     unsaved = true;
     renderButtons();
   }
@@ -125,30 +127,30 @@
     if (busy || !renderReq() || !$('calAck').checked) return;
     busy = true; renderButtons();
     try {
-      setStep(tr('<b class="big">Mesure avant calibration</b>Lâchez les deux sticks…'));
+      setStep(() => tr('<b class="big">Mesure avant calibration</b>Lâchez les deux sticks…'));
       actions([]);
       before = await measure(); after = null; renderCompare();
-      setStep(tr('<b class="big">Démarrage…</b>'));
+      setStep(() => tr('<b class="big">Démarrage…</b>'));
       await ds.calibCenterBegin();
       unsaved = true;
       for (let i = 0; i < CORNERS.length; i++) {
-        setStep(tr('<b class="big">Étape ') + (i + 1) + tr('/4</b>Poussez les <b>deux sticks ') + tr(CORNERS[i]) + tr('</b>, relâchez-les, puis cliquez « Continuer » quand ils sont revenus au centre.'));
+        setStep(() => tr('<b class="big">Étape ') + (i + 1) + tr('/4</b>Poussez les <b>deux sticks ') + tr(CORNERS[i]) + tr('</b>, relâchez-les, puis cliquez « Continuer » quand ils sont revenus au centre.'));
         await waitClick(tr('Continuer'));
         actions([]);
         if (!await waitCentered()) {
-          setStep(tr('<b class="big">Étape ') + (i + 1) + tr('/4</b><span class="txt-bad">Les sticks ne sont pas revenus au centre.</span> Relâchez-les complètement puis cliquez « Continuer ».'));
+          setStep(() => tr('<b class="big">Étape ') + (i + 1) + tr('/4</b><span class="txt-bad">Les sticks ne sont pas revenus au centre.</span> Relâchez-les complètement puis cliquez « Continuer ».'));
           i--; continue;
         }
         await ds.calibCenterSample();
       }
-      setStep(tr('<b class="big">Enregistrement…</b>Ne touchez pas les sticks.'));
+      setStep(() => tr('<b class="big">Enregistrement…</b>Ne touchez pas les sticks.'));
       await sleep(200);
       await ds.calibCenterSample();
       await ds.calibCenterEnd();
       await sleep(300);
       after = await measure(); renderCompare();
       busy = false;
-      setStep(tr('<b class="big txt-ok">Centre calibré (temporaire)</b>Comparez « Avant / Après ». Si c\'est mieux, cliquez « Sauvegarder définitivement ».'));
+      setStep(() => tr('<b class="big txt-ok">Centre calibré (temporaire)</b>Comparez « Avant / Après ». Si c\'est mieux, cliquez « Sauvegarder définitivement ».'));
       renderButtons();
     } catch (e) { fail(e); }
   }
@@ -169,7 +171,7 @@
     busy = true; renderButtons();
     try {
       actions([]);
-      setStep(tr('<b class="big">Démarrage…</b>'));
+      setStep(() => tr('<b class="big">Démarrage…</b>'));
       await ds.calibRangeBegin();
       unsaved = true;
       rangeBins = { L: new Array(BINS).fill(0), R: new Array(BINS).fill(0) };
@@ -178,7 +180,7 @@
         const tick = () => {
           if (done) return;
           const cl = Math.round(coverage(rangeBins.L) * 100), cr = Math.round(coverage(rangeBins.R) * 100);
-          setStep(tr('<b class="big">Amplitude</b>Faites tourner <b>les deux sticks en butée</b>, lentement, plusieurs tours complets.<br>Couverture : gauche ') + cl + tr(' %, droit ') + cr + ' %');
+          setStep(() => tr('<b class="big">Amplitude</b>Faites tourner <b>les deux sticks en butée</b>, lentement, plusieurs tours complets.<br>Couverture : gauche ') + cl + tr(' %, droit ') + cr + ' %');
           actions([[tr('Terminer'), 'primary', () => { done = true; res(); }, cl < 95 || cr < 95]]);
           setTimeout(tick, 250);
         };
@@ -187,10 +189,10 @@
       await doneP;
       rangeBins = null;
       actions([]);
-      setStep(tr('<b class="big">Enregistrement…</b>Lâchez les sticks.'));
+      setStep(() => tr('<b class="big">Enregistrement…</b>Lâchez les sticks.'));
       await ds.calibRangeEnd();
       busy = false;
-      setStep(tr('<b class="big txt-ok">Amplitude calibrée (temporaire)</b>Vérifiez dans l\'onglet Entrées que les sticks atteignent bien le cercle, puis « Sauvegarder définitivement ».'));
+      setStep(() => tr('<b class="big txt-ok">Amplitude calibrée (temporaire)</b>Vérifiez dans l\'onglet Entrées que les sticks atteignent bien le cercle, puis « Sauvegarder définitivement ».'));
       renderButtons();
     } catch (e) { rangeBins = null; fail(e); }
   }
@@ -200,13 +202,13 @@
     if (!unsaved || busy) return;
     if (!confirm(tr('Écrire définitivement la nouvelle calibration dans la manette ?\n\nNe débranchez pas la manette pendant l\'opération.'))) return;
     busy = true; renderButtons();
-    setStep(tr('<b class="big">Sauvegarde…</b>Ne débranchez pas la manette.'));
+    setStep(() => tr('<b class="big">Sauvegarde…</b>Ne débranchez pas la manette.'));
     try {
       const locked = await ds.nvsSave();
       nvs = locked;
       unsaved = false; busy = false;
-      setStep(locked === true
-        ? tr('<b class="big txt-ok">Calibration sauvegardée</b>Elle est conservée après extinction et sur PS5. Relancez les tests de sticks dans l\'onglet Validation.')
+      setStep(() => locked === true
+        ? tr('<b class="big txt-ok">Calibration sauvegardée</b>Elle est conservée après extinction et sur PS5. Relancez les tests de sticks dans l\'onglet Contrôle.')
         : tr('<b class="big txt-bad">Sauvegarde non confirmée</b>La mémoire n\'est pas revenue à l\'état verrouillé. Débranchez/rebranchez la manette et vérifiez.'));
       renderButtons();
     } catch (e) { fail(e); }
@@ -216,7 +218,7 @@
     busy = true; renderButtons();
     await ds.reboot();
     busy = false; unsaved = false;
-    setStep(tr('La manette redémarre : l\'ancienne calibration est restaurée. Reconnectez-la si besoin.'));
+    setStep(() => tr('La manette redémarre : l\'ancienne calibration est restaurée. Reconnectez-la si besoin.'));
     renderButtons();
   });
 
@@ -240,7 +242,7 @@
     $('calTxR').textContent = st.rx + ',' + st.ry + ' (' + (Math.hypot(norm(st.rx), norm(st.ry)) * 100).toFixed(1) + ' %)';
   })();
 
-  document.addEventListener('langchange', () => { renderReq(); renderButtons(); renderCompare(); });
+  document.addEventListener('langchange', () => { renderReq(); renderButtons(); renderCompare(); if (stepFn) $('calStep').innerHTML = stepFn(); });
 
   renderButtons();
 })();

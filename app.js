@@ -157,7 +157,7 @@
     return d ? d + ' ' + tr('j') + ' ' + hm + ' (' + Math.floor(sec / 3600) + ' h)' : hm;
   }
   const yesNo = ok => ok ? 'OK' : tr('non');
-  const num = n => n == null ? '-' : Number(n).toLocaleString(I18N.lang === 'fr' ? 'fr-FR' : 'en-US');
+  const num = n => n == null ? '-' : Number(n).toLocaleString(I18N.locale);
 
   function renderFactory() {
     const f = ds.factory || {}, i = ds.info;
@@ -279,7 +279,7 @@
     const prev = historyLoad().find(x => (f.serial && x.serial === f.serial) || (!f.serial && ds.info.mac && x.mac === ds.info.mac));
     const el = $('seenBefore');
     el.hidden = !prev;
-    if (prev) el.textContent = tr('Cette manette a déjà été testée ici le ') + new Date(prev.date).toLocaleString() + tr(', verdict : ') + prev.verdict + (prev.unit ? ' (' + prev.unit + ')' : '') + '.';
+    if (prev) el.textContent = tr('Cette manette a déjà été testée ici le ') + new Date(prev.date).toLocaleString(I18N.locale) + tr(', verdict : ') + prev.verdict + (prev.unit ? ' (' + prev.unit + ')' : '') + '.';
   }
 
   // Buttons
@@ -297,7 +297,7 @@
     const g = $('btnGrid'); g.innerHTML = '';
     for (const [k, label] of buttonList()) {
       const d = document.createElement('div');
-      d.className = 'btn'; d.textContent = tr(label); d.title = k;
+      d.className = 'btn'; d.textContent = tr(label);
       g.appendChild(d); btnEls[k] = d;
     }
   }
@@ -847,6 +847,27 @@
         },
       }),
       T({
+        id: 'glitch', title: 'Sauts de signal (sticks et gâchettes)', required: false,
+        instructions: 'Bougez LENTEMENT les deux sticks dans tous les sens et enfoncez LENTEMENT L2 et R2 plusieurs fois, jusqu\'à ce que les 6 axes soient à 100 %. Un potentiomètre usé fait sauter la valeur puis revenir en moins de 15 ms, ce qu\'aucun doigt ne peut faire. Exige : aucun saut.',
+        kind: 'auto',
+        start(t) { t.status = 'running'; t.data = { axes: GLITCH_AXES.map(() => newGlitchAxis()) }; renderTests(); },
+        onState(st) {
+          const d = this.data;
+          GLITCH_AXES.forEach((a, i) => glitchStep(d.axes[i], st[a.key], st.time));
+          const prog = GLITCH_AXES.map((a, i) => Math.min(100, Math.round(d.axes[i].path / a.need * 100)));
+          const jumps = d.axes.map(x => x.glitches);
+          const txt = GLITCH_AXES.map((a, i) => a.label + ' ' + prog[i] + '%' + (jumps[i] ? ' (' + jumps[i] + tr(' saut') + (jumps[i] > 1 ? 's' : '') + ')' : '')).join(', ');
+          if (txt !== this.detail) { this.detail = txt; renderTestBody(this); }
+          if (prog.every(p => p >= 100)) {
+            const total = jumps.reduce((x, y) => x + y, 0);
+            this.data = { jumps: Object.fromEntries(GLITCH_AXES.map((a, i) => [a.key, jumps[i]])), biggest: Math.max(...d.axes.map(x => x.biggest)) };
+            this.detail = total ? tr('Sauts détectés : ') + GLITCH_AXES.filter((a, i) => jumps[i]).map(a => a.label + ' ×' + jumps[GLITCH_AXES.indexOf(a)]).join(', ') + tr(' (plus grand : ') + this.data.biggest + tr('/255). Potentiomètre usé ou sale.')
+              : tr('Aucun saut sur les 6 axes : pistes des potentiomètres en bon état.');
+            finish(this, total === 0);
+          }
+        },
+      }),
+      T({
         id: 'touchpad', title: 'Pavé tactile (surface et 2 doigts)',
         instructions: 'Glissez un doigt sur toute la surface du pavé (cases vertes sur le dessin, onglet Entrées), puis posez 2 doigts en même temps. Exige ≥ 95 % de surface.',
         kind: 'auto',
@@ -974,6 +995,34 @@
       }),
     ];
     renderTests();
+  }
+
+  // Signal jumps. A worn or dirty potentiometer track makes the value leave its position by 20 or
+  // more (8 %) and come back within 15 ms while the control moves slowly. A thumb cannot do that,
+  // and fast moves (flicks, releases) are excluded because the axis must have been slow just before.
+  const GLITCH_AXES = [
+    { key: 'lx', label: 'LX', need: 1500 }, { key: 'ly', label: 'LY', need: 1500 },
+    { key: 'rx', label: 'RX', need: 1500 }, { key: 'ry', label: 'RY', need: 1500 },
+    { key: 'l2', label: 'L2', need: 1200 }, { key: 'r2', label: 'R2', need: 1200 },
+  ];
+  const newGlitchAxis = () => ({ hist: [], path: 0, glitches: 0, biggest: 0, pending: null });
+  function glitchStep(a, v, t) {
+    const h = a.hist;
+    if (h.length) a.path += Math.min(Math.abs(v - h[h.length - 1]), 8);   // only slow motion counts as travel
+    if (a.pending) {
+      if (Math.abs(v - a.pending.base) <= 6) {
+        a.glitches++; a.biggest = Math.max(a.biggest, a.pending.size); a.pending = null;
+      } else if (t - a.pending.t > 15) a.pending = null;   // stayed there: a real move
+      else a.pending.size = Math.max(a.pending.size, Math.abs(v - a.pending.base));
+    } else if (h.length >= 8) {
+      const prev = h.slice(-8);
+      let speed = 0;
+      for (let i = 1; i < prev.length; i++) speed += Math.abs(prev[i] - prev[i - 1]);
+      speed /= prev.length - 1;
+      const base = prev[prev.length - 1];
+      if (speed < 3 && Math.abs(v - base) >= 20) a.pending = { base, t, size: Math.abs(v - base) };
+    }
+    h.push(v); if (h.length > 12) h.shift();
   }
 
   // Explains why the controller audio device was not found
@@ -1134,7 +1183,7 @@
   function renderHistory() {
     const h = historyLoad();
     $('history').innerHTML = h.length ? '<table class="kv"><tbody>' + h.map(x =>
-      '<tr><td>' + new Date(x.date).toLocaleString() + '</td><td>' + esc(x.model || '') + '</td><td class="mono">' + esc(x.serial || x.mac || '') + '</td><td>' + esc(x.unit || '') + '</td><td><b>' + esc(x.verdict) + '</b></td></tr>'
+      '<tr><td>' + new Date(x.date).toLocaleString(I18N.locale) + '</td><td>' + esc(x.model || '') + '</td><td class="mono">' + esc(x.serial || x.mac || '') + '</td><td>' + esc(x.unit || '') + '</td><td><b>' + esc(x.verdict) + '</b></td></tr>'
     ).join('') + '</tbody></table>' : tr('Aucun rapport enregistré.');
   }
   renderHistory();
@@ -1166,7 +1215,7 @@
     const cur = buildReport();
     const a = metrics(old), b = metrics(cur);
     const same = old.factory && cur.factory && old.factory.serial && old.factory.serial === cur.factory.serial;
-    $('compareInfo').textContent = tr('Avant : ') + new Date(old.date).toLocaleString() + (old.unit ? ' (' + old.unit + ')' : '') +
+    $('compareInfo').textContent = tr('Avant : ') + new Date(old.date).toLocaleString(I18N.locale) + (old.unit ? ' (' + old.unit + ')' : '') +
       tr(', après : maintenant') + (old.factory && cur.factory && old.factory.serial && !same ? tr('. Attention : numéros de série différents.') : '');
     $('compareBody').innerHTML = '<tr><th></th><td><b>' + tr('Avant') + '</b></td><td><b>' + tr('Après') + '</b></td><td></td></tr>' + a.map((row, i) => {
       const v0 = row[1], v1 = b[i][1];
@@ -1235,7 +1284,7 @@
     const passed = r.tests.filter(t => t.status === 'pass').length;
     $('printReport').innerHTML =
       '<header class="rp-head"><div class="rp-brand"><img src="icon.svg" alt=""><div><b>ZerPad</b><span>' + tr('Rapport de contrôle de manette') + '</span></div></div>' +
-      '<div class="rp-meta">' + tr('Rapport n°') + ' <b>' + rid + '</b><br>' + new Date(r.date).toLocaleString() + (r.unit ? '<br>' + esc(r.unit) : '') + '</div></header>' +
+      '<div class="rp-meta">' + tr('Rapport n°') + ' <b>' + rid + '</b><br>' + new Date(r.date).toLocaleString(I18N.locale) + (r.unit ? '<br>' + esc(r.unit) : '') + '</div></header>' +
       '<section class="rp-top"><img class="rp-pad" id="rpPad" src="' + padImage(f.colorCode) + '" alt="">' +
       '<div class="rp-verdict ' + v.key + '"><span>' + tr('Résultat') + '</span><strong>' + esc(v.label) + '</strong><p>' + esc(v.detail) + '</p>' +
       '<p class="rp-count">' + passed + ' / ' + r.tests.length + ' ' + tr('tests réussis') + '</p></div></section>' +
