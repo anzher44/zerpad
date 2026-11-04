@@ -357,3 +357,9 @@ pre.log { max-height: 260px; overflow-y: auto; white-space: pre-wrap; }
 .faq summary { cursor: pointer; font-weight: 500; font-size: 14.5px; }
 .faq p { margin: 8px 0 0; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
 #btnClearHistory { margin-top: 12px; }
+
+/* Less motion when the system asks for it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+}
+.kbd-hint { flex-basis: 100%; margin: 4px 0 0; }

@@ -1,5 +1,5 @@
 // ZerPad service worker: caches the site so it works offline.
-const CACHE = 'zerpad-v30';
+const CACHE = 'zerpad-v31';
 const FILES = ['./', 'index.html', 'style.css', 'i18n.js', 'i18n-en.js', 'i18n-es.js', 'i18n-de.js', 'i18n-it.js', 'i18n-pt.js', 'dualsense.js', 'app.js', 'calibration.js', 'games.js', 'quick.js', 'icon.svg', 'manifest.webmanifest',
   'assets/fonts/plex-sans-400.woff2', 'assets/fonts/plex-sans-500.woff2', 'assets/fonts/plex-sans-600.woff2', 'assets/fonts/plex-mono-400.woff2', 'assets/fonts/plex-mono-500.woff2'];
 self.addEventListener('install', e => {

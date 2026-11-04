@@ -160,9 +160,9 @@
   $('qClear').addEventListener('click', () => { bins = [new Float32Array(BINS), new Float32Array(BINS)]; seen.clear(); trigMax = [0, 0]; driftText = ''; });
 
   // Plain text summary, handy on a phone for a sale listing
-  $('qCopy').addEventListener('click', async () => {
+  function summary() {
     const p = pad();
-    if (!p) return;
+    if (!p) return '';
     const names = LAYOUTS[family(p)], n = Math.min(names.length, p.buttons.length);
     const missing = names.slice(0, n).filter((x, i) => !seen.has(String(i)));
     const L = [p.id];
@@ -171,7 +171,11 @@
     if ($('qCirc').textContent) L.push($('qCirc').textContent);
     if (driftText) L.push(tr('Dérive') + tr(' : ') + driftText);
     L.push('', tr('Test rapide ZerPad') + ' – https://anzher44.github.io/zerpad/');
-    const txt = L.join('\n');
+    return L.join('\n');
+  }
+  $('qCopy').addEventListener('click', async () => {
+    const txt = summary();
+    if (!txt) return;
     try { await navigator.clipboard.writeText(txt); }
     catch (e) {
       const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
@@ -182,13 +186,35 @@
     const b = $('qCopy'); b.textContent = tr('Résumé copié');
     setTimeout(() => { b.textContent = tr('Copier le résumé'); }, 2000);
   });
+  // Phones: send the summary straight to a messaging or listing app
+  if (navigator.share) {
+    $('qShare').hidden = false;
+    $('qShare').addEventListener('click', () => {
+      const txt = summary();
+      if (txt) navigator.share({ title: 'ZerPad', text: txt }).catch(() => { /* cancelled */ });
+    });
+  }
 
-  $('qRumble').addEventListener('click', () => {
-    const p = pad(), a = p && p.vibrationActuator;
-    if (!a || !a.playEffect) { $('qRumbleRes').textContent = tr('Ce navigateur ne permet pas la vibration.'); return; }
-    a.playEffect('dual-rumble', { duration: 800, strongMagnitude: 1, weakMagnitude: 1 })
-      .then(() => { $('qRumbleRes').textContent = tr('Les deux moteurs ont-ils vibré ?'); })
-      .catch(() => { $('qRumbleRes').textContent = tr('Ce navigateur ne permet pas la vibration.'); });
+  // Strong (left) motor, then weak (right) motor, then the trigger motors where they exist (Xbox)
+  $('qRumble').addEventListener('click', async () => {
+    const p = pad(), a = p && p.vibrationActuator, out = $('qRumbleRes'), b = $('qRumble');
+    if (!a || !a.playEffect) { out.textContent = tr('Ce navigateur ne permet pas la vibration.'); return; }
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    b.disabled = true;
+    try {
+      out.textContent = tr('Moteur gauche (fort)…');
+      await a.playEffect('dual-rumble', { duration: 700, strongMagnitude: 1, weakMagnitude: 0 }); await wait(300);
+      out.textContent = tr('Moteur droit (léger)…');
+      await a.playEffect('dual-rumble', { duration: 700, strongMagnitude: 0, weakMagnitude: 1 });
+      let trig = false;
+      if (a.effects && a.effects.includes('trigger-rumble')) {
+        await wait(300); out.textContent = tr('Gâchettes…'); trig = true;
+        await a.playEffect('trigger-rumble', { duration: 700, leftTrigger: 1, rightTrigger: 1 });
+      }
+      out.textContent = trig ? tr('Le moteur gauche, le droit puis les gâchettes ont-ils vibré l\'un après l\'autre ?')
+        : tr('Le moteur gauche puis le droit ont-ils vibré l\'un après l\'autre ?');
+    } catch (e) { out.textContent = tr('Ce navigateur ne permet pas la vibration.'); }
+    b.disabled = false;
   });
 
   requestAnimationFrame(frame);

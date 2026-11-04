@@ -63,7 +63,7 @@
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: n => {
         if (!/[A-Za-zÀ-ÿ]{2}/.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
-        if (n.parentElement.closest('[data-i18n-html], script, style, pre, .print-only, #selLang')) return NodeFilter.FILTER_REJECT;
+        if (n.parentElement.closest('[data-i18n-html], script, style, noscript, pre, .print-only, #selLang')) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });

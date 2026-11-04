@@ -3,7 +3,7 @@
   'use strict';
   // Numbers in the reader's format (3,2 in French, 3.2 in English)
   const nf = (v, d) => Number(v).toLocaleString(I18N.locale, d == null ? { maximumFractionDigits: 2 } : { minimumFractionDigits: d, maximumFractionDigits: d });
-  const VERSION = '2.11.0';
+  const VERSION = '2.12.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1178,6 +1178,9 @@
         mk(tr('Fonctionne'), 'ok', () => { t.detail = tr('Confirmé par l\'opérateur'); finish(t, true); });
         mk(tr('Ne fonctionne pas'), 'bad', () => { t.detail = tr('Signalé défectueux par l\'opérateur'); finish(t, false); });
         mk(tr('Relancer'), 'ghost', () => t.start(t));
+        const hint = document.createElement('p'); hint.className = 'small kbd-hint';
+        hint.textContent = tr('Clavier : O = fonctionne, N = ne fonctionne pas');
+        act.appendChild(hint);
       } else if (t.status === 'running') {
         if (t.kind === 'auto' && t.required) mk(tr('Abandonner (échec)'), 'bad', () => { t.detail += tr(' (abandonné)'); finish(t, false); });
         mk(tr('Passer'), 'ghost', () => { t.status = 'skip'; touchShowGrid = false; renderTests(); });
@@ -1451,6 +1454,33 @@
 
   // Offline support / install as an app
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    // A new version takes over in the background; offer a reload instead of forcing one
+    // (a reload in the middle of a calibration step would be a bad surprise)
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || $('updateBar')) return;
+      const bar = document.createElement('div');
+      bar.id = 'updateBar'; bar.className = 'banner info lang-offer';
+      const msg = document.createElement('span'); msg.textContent = tr('Une nouvelle version de ZerPad est prête.');
+      const b = document.createElement('button'); b.className = 'primary small'; b.textContent = tr('Recharger la page');
+      b.addEventListener('click', () => location.reload());
+      bar.append(msg, b);
+      const top = document.querySelector('.top'); top.parentNode.insertBefore(bar, top.nextSibling);
+    });
     navigator.serviceWorker.register('sw.js').catch(() => { /* optional */ });
   }
+  $('appVersion').textContent = 'v' + VERSION;
+
+  // Keyboard: O / Y / S / J = works, N = does not, for the test waiting for a confirmation
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement && document.activeElement.tagName)) return;
+    if (!$('tab-val').classList.contains('active')) return;
+    const t = tests.find(x => x.status === 'running' && x.awaitingConfirm);
+    if (!t) return;
+    const k = e.key.toLowerCase();
+    const sel = 'ojsy'.includes(k) && k.length === 1 ? 'button.ok' : k === 'n' ? 'button.bad' : null;
+    const b = sel && document.querySelector('#test-' + t.id + ' .tact ' + sel);
+    if (b) { e.preventDefault(); b.click(); }
+  });
 })();

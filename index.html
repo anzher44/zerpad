@@ -96,6 +96,7 @@
 </script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="stylesheet" href="style.css">
 <script>
@@ -138,6 +139,7 @@
 </header>
 
 <main>
+<noscript><div class="banner warn">ZerPad a besoin de JavaScript pour lire la manette : activez-le dans votre navigateur. / ZerPad needs JavaScript to read the controller: please enable it.</div></noscript>
 <div id="unsupported" class="banner warn" hidden data-i18n-html>
   Votre navigateur ne gère pas <b>WebHID</b>. Ouvrez cette page avec <b>Google Chrome</b> ou <b>Microsoft Edge</b> (ordinateur).
 </div>
@@ -160,6 +162,7 @@
     <button id="qDrift">Mesurer la dérive (3 s)</button>
     <button id="qRumble">Tester la vibration</button>
     <button id="qCopy" class="ghost">Copier le résumé</button>
+    <button id="qShare" class="ghost" hidden>Partager</button>
     <button id="qClear" class="ghost">Effacer les traces</button>
   </div>
   <p id="qDriftRes" class="small" aria-live="polite"></p>
@@ -447,6 +450,15 @@
       <p id="gDoseStatus" class="gstatus"></p>
       <p id="gDoseBest" class="small"></p>
     </div>
+    <div class="card game">
+      <h2>Équilibre</h2>
+      <p class="small">Inclinez la manette pour garder la bille au centre malgré le courant qui la pousse. Un test ludique de l'accéléromètre.</p>
+      <canvas id="gBalCv"></canvas>
+      <div class="row"><button id="gBalStart" class="primary">Jouer</button>
+        <label class="row">Avant / arrière <select id="gBalAxis"><option value="norm">Normal</option><option value="inv">Inversé</option></select></label></div>
+      <p id="gBalStatus" class="gstatus"></p>
+      <p id="gBalBest" class="small"></p>
+    </div>
   </div>
 </section>
 
@@ -516,7 +528,8 @@
 
 <footer class="foot small">
   ZerPad, outil libre. Aucune donnée n'est envoyée sur internet. Le firmware n'est jamais modifié.
-  <a href="https://github.com/anzher44/zerpad">Code source</a>
+  <a href="https://github.com/anzher44/zerpad">Code source</a> ·
+  <a href="https://github.com/anzher44/zerpad/commits/main">Nouveautés</a> · <span id="appVersion" class="mono"></span>
 </footer>
 
 <script src="i18n.js"></script>

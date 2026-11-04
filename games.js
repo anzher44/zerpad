@@ -229,7 +229,56 @@
     },
   });
 
-  const games = [reaction, target, dose];
+  // 4. Balance: tilt the controller to keep a ball in the middle while a drift pushes it away.
+  // Uses the accelerometer; the position held at the start counts as level.
+  const BAL_MS = 30000, BAL_ZONE = 0.28;
+  const balance = Game('gBal', {
+    fmtScore: v => v + ' %',
+    better: (a, b) => a > b,
+    start(now) {
+      const a = ds.state.accel || [0, 1, 0];
+      this.t0 = now; this.last = now; this.inside = 0; this.total = 0;
+      this.ref = [a[0], a[2]]; this.p = [0, 0]; this.v = [0, 0]; this.wind = [0, 0]; this.windTo = [0, 0]; this.windAt = now;
+      this.flip = $('gBalAxis').value === 'inv' ? -1 : 1;
+    },
+    frame(now, st) {
+      const el = now - this.t0, dt = Math.min(now - this.last, 50) / 1000; this.last = now;
+      if (!st.accel) return;
+      if (now >= this.windAt) {
+        const ang = Math.random() * 2 * Math.PI, f = 0.35 + Math.min(1, el / BAL_MS) * 0.55;
+        this.windTo = [Math.cos(ang) * f, Math.sin(ang) * f]; this.windAt = now + 2000;
+      }
+      for (let i = 0; i < 2; i++) {
+        this.wind[i] += (this.windTo[i] - this.wind[i]) * Math.min(1, dt * 2);
+        // tilting a side down rolls the ball to that side
+        const tilt = i === 0 ? -(st.accel[0] - this.ref[0]) : -(st.accel[2] - this.ref[1]) * this.flip;
+        this.v[i] = (this.v[i] + (tilt * 6 + this.wind[i]) * dt) * Math.pow(0.4, dt);
+        this.p[i] += this.v[i] * dt;
+      }
+      const r = Math.hypot(this.p[0], this.p[1]);
+      if (r > 1) { this.p = this.p.map(x => x / r); this.v = this.v.map(x => -x * 0.3); buzz(60, 120); }
+      this.on = r < BAL_ZONE;
+      this.total += dt; if (this.on) this.inside += dt;
+      if (this.wasOn !== this.on) { flash(this.on ? 0 : 255, this.on ? 200 : 60, this.on ? 60 : 0); this.wasOn = this.on; }
+      const pct = Math.round(this.inside / (this.total || 1) * 100);
+      this.setStatus(tr('Bille au centre : ') + pct + ' %, ' + Math.max(0, Math.ceil((BAL_MS - el) / 1000)) + ' s');
+      if (el >= BAL_MS) { this.score = pct; this.stop(true); }
+    },
+    draw() {
+      const { c, w, h } = ctxOf($('gBalCv'));
+      c.clearRect(0, 0, w, h);
+      const R = Math.min(w, h) / 2 - 10, cx = w / 2, cy = h / 2;
+      c.strokeStyle = css('--line'); c.lineWidth = 1;
+      c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke();
+      if (!this.running) { centerText(c, w, h, [tr('Inclinez la manette pour garder la bille au centre.'), tr('Un courant la pousse, de plus en plus fort, 30 secondes.')]); return; }
+      c.fillStyle = this.on ? css('--okbg') : css('--panel2'); c.strokeStyle = this.on ? css('--ok') : css('--muted'); c.lineWidth = 2;
+      c.beginPath(); c.arc(cx, cy, BAL_ZONE * R, 0, 7); c.fill(); c.stroke();
+      c.fillStyle = css('--accent');
+      c.beginPath(); c.arc(cx + this.p[0] * R, cy + this.p[1] * R, 9, 0, 7); c.fill();
+    },
+  });
+
+  const games = [reaction, target, dose, balance];
   function loop(now) {
     requestAnimationFrame(loop);
     const visible = $('tab-games').classList.contains('active');
