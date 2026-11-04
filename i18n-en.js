@@ -1,5 +1,18 @@
 // English translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).en = {
+  "Questions fréquentes": "Frequently asked questions",
+  "Comment savoir si ma manette a de la dérive (drift) ?": "How do I know if my controller has stick drift?",
+  "Lancez le contrôle et laissez les sticks au repos : ZerPad mesure leur décalage et leur bruit. Jusqu'à 3,5 % le stick est bon, de 3,5 à 6 % une calibration est conseillée, au-delà c'est de la dérive. Un bruit supérieur à 1,5 % indique un potentiomètre usé.": "Run the check and leave the sticks at rest: ZerPad measures their offset and noise. Up to 3.5 % the stick is fine, from 3.5 to 6 % a calibration is recommended, above that it is drift. Noise above 1.5 % points to a worn potentiometer.",
+  "La calibration est-elle définitive ?": "Is the calibration permanent?",
+  "Non, tant que vous ne cliquez pas sur « Sauvegarder définitivement », les nouvelles valeurs sont temporaires et l'ancienne calibration revient au redémarrage de la manette. Une fois sauvegardée, vous pouvez recalibrer à tout moment.": "No. Until you click “Save permanently”, the new values are temporary and the old calibration comes back when the controller restarts. Once saved, you can recalibrate at any time.",
+  "Peut-on reconnaître une fausse manette ?": "Can a fake controller be detected?",
+  "ZerPad vérifie que la manette répond aux commandes internes de Sony et que ses infos usine sont cohérentes (numéro de série, carte mère, date du firmware). Une manette qui échoue à ces contrôles est très probablement une copie.": "ZerPad checks that the controller answers Sony's internal commands and that its factory info is consistent (serial number, motherboard, firmware date). A controller that fails these checks is very likely a copy.",
+  "Pourquoi faut-il Chrome ou Edge ?": "Why Chrome or Edge?",
+  "Le test complet utilise WebHID, que seuls Chrome et Edge sur ordinateur proposent. Sur Firefox, Safari et téléphone, un test rapide reste disponible : boutons, sticks, gâchettes, dérive et vibration.": "The full test uses WebHID, which only Chrome and Edge on a computer provide. On Firefox, Safari and phones a quick test is still available: buttons, sticks, triggers, drift and vibration.",
+  "Ça marche avec une manette Xbox ou Switch ?": "Does it work with an Xbox or Switch controller?",
+  "Oui, pour le test rapide : boutons, sticks, gâchettes, dérive, circularité et vibration selon le navigateur. Les infos usine, la batterie, l'historique d'usage et la calibration sont réservés à la DualSense et à la DualSense Edge.": "Yes, for the quick test: buttons, sticks, triggers, drift, circularity and vibration depending on the browser. Factory info, battery, usage history and calibration are only for the DualSense and DualSense Edge.",
+  "Mes données sont-elles envoyées quelque part ?": "Is my data sent anywhere?",
+  "Non. Tout se passe dans votre navigateur : aucune mesure n'est envoyée sur internet. L'historique des contrôles reste sur cet ordinateur.": "No. Everything happens in your browser: no measurement is sent over the internet. The check history stays on this computer.",
   "Test rapide pour une autre manette": "Quick test for another controller",
   "Cette manette n'est pas une DualSense : seul le test simple est possible (boutons, sticks, gâchettes et vibration). Les infos usine, la batterie, la calibration et l'historique d'usage concernent la DualSense.": "This controller is not a DualSense: only the simple test is possible (buttons, sticks, triggers and vibration). Factory info, battery, calibration and usage history are for the DualSense.",
   "contour couvert ": "contour covered ",

@@ -1,7 +1,7 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.9.0';
+  const VERSION = '2.9.1';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

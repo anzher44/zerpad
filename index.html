@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ZerPad | Testeur de manette PS5 DualSense en ligne</title>
-<meta name="description" content="Testez une manette PS5 DualSense ou DualSense Edge dans le navigateur : dérive des sticks (drift), gâchettes adaptatives, boutons, batterie, gyroscope, infos usine, historique d'usage, calibration et rapport PDF. Gratuit, sans installation.">
+<title>ZerPad | Testeur de manette PS5 DualSense en ligne (drift, batterie, calibration)</title>
+<meta name="description" content="Testez une manette PS5 DualSense ou DualSense Edge dans le navigateur : dérive des sticks (drift), gâchettes adaptatives, boutons, batterie, gyroscope, infos usine, historique d'usage, calibration et rapport PDF. Test rapide aussi pour les manettes Xbox et Switch, sur Firefox, Safari et téléphone. Gratuit, sans installation.">
 <meta name="theme-color" content="#070b15">
 <link rel="canonical" href="https://anzher44.github.io/zerpad/">
 <meta property="og:type" content="website">
@@ -22,13 +22,69 @@
   "url": "https://anzher44.github.io/zerpad/",
   "description": "Browser tool to test, validate and recalibrate PS5 DualSense and DualSense Edge controllers: stick drift, adaptive triggers, buttons, battery, motion sensors, factory info, usage history and PDF report.",
   "applicationCategory": "UtilitiesApplication",
-  "operatingSystem": "Windows, macOS, Linux, ChromeOS",
-  "browserRequirements": "Google Chrome or Microsoft Edge with WebHID",
-  "inLanguage": ["fr", "en"],
+  "operatingSystem": "Windows, macOS, Linux, ChromeOS, Android",
+  "browserRequirements": "Google Chrome or Microsoft Edge with WebHID for the full test; any browser with the Gamepad API for the quick test",
+  "inLanguage": ["fr", "en", "es", "de", "it", "pt"],
   "isAccessibleForFree": true,
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
   "license": "https://opensource.org/licenses/MIT",
   "codeRepository": "https://github.com/anzher44/zerpad"
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "Comment savoir si ma manette a de la dérive (drift) ?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Lancez le contrôle et laissez les sticks au repos : ZerPad mesure leur décalage et leur bruit. Jusqu'à 3,5 % le stick est bon, de 3,5 à 6 % une calibration est conseillée, au-delà c'est de la dérive. Un bruit supérieur à 1,5 % indique un potentiomètre usé."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "La calibration est-elle définitive ?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Non, tant que vous ne cliquez pas sur « Sauvegarder définitivement », les nouvelles valeurs sont temporaires et l'ancienne calibration revient au redémarrage de la manette. Une fois sauvegardée, vous pouvez recalibrer à tout moment."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Peut-on reconnaître une fausse manette ?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "ZerPad vérifie que la manette répond aux commandes internes de Sony et que ses infos usine sont cohérentes (numéro de série, carte mère, date du firmware). Une manette qui échoue à ces contrôles est très probablement une copie."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Pourquoi faut-il Chrome ou Edge ?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Le test complet utilise WebHID, que seuls Chrome et Edge sur ordinateur proposent. Sur Firefox, Safari et téléphone, un test rapide reste disponible : boutons, sticks, gâchettes, dérive et vibration."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Ça marche avec une manette Xbox ou Switch ?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Oui, pour le test rapide : boutons, sticks, gâchettes, dérive, circularité et vibration selon le navigateur. Les infos usine, la batterie, l'historique d'usage et la calibration sont réservés à la DualSense et à la DualSense Edge."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Mes données sont-elles envoyées quelque part ?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Non. Tout se passe dans votre navigateur : aucune mesure n'est envoyée sur internet. L'historique des contrôles reste sur cet ordinateur."
+   }
+  }
+ ]
 }
 </script>
 <link rel="manifest" href="manifest.webmanifest">
@@ -119,6 +175,15 @@
     <div><h2>Historique d'usage</h2><p>Heures d'utilisation, charges et appuis par bouton, enregistrés par la manette.</p></div>
     <div><h2>Calibration</h2><p>Recalibrage du centre et de l'amplitude des sticks, réversible jusqu'à la sauvegarde.</p></div>
     <div><h2>Rapport PDF</h2><p>Une page avec la manette dans sa couleur, prête à remettre à un client.</p></div>
+  </div>
+  <div class="faq">
+    <h2>Questions fréquentes</h2>
+    <details><summary>Comment savoir si ma manette a de la dérive (drift) ?</summary><p>Lancez le contrôle et laissez les sticks au repos : ZerPad mesure leur décalage et leur bruit. Jusqu'à 3,5 % le stick est bon, de 3,5 à 6 % une calibration est conseillée, au-delà c'est de la dérive. Un bruit supérieur à 1,5 % indique un potentiomètre usé.</p></details>
+    <details><summary>La calibration est-elle définitive ?</summary><p>Non, tant que vous ne cliquez pas sur « Sauvegarder définitivement », les nouvelles valeurs sont temporaires et l'ancienne calibration revient au redémarrage de la manette. Une fois sauvegardée, vous pouvez recalibrer à tout moment.</p></details>
+    <details><summary>Peut-on reconnaître une fausse manette ?</summary><p>ZerPad vérifie que la manette répond aux commandes internes de Sony et que ses infos usine sont cohérentes (numéro de série, carte mère, date du firmware). Une manette qui échoue à ces contrôles est très probablement une copie.</p></details>
+    <details><summary>Pourquoi faut-il Chrome ou Edge ?</summary><p>Le test complet utilise WebHID, que seuls Chrome et Edge sur ordinateur proposent. Sur Firefox, Safari et téléphone, un test rapide reste disponible : boutons, sticks, gâchettes, dérive et vibration.</p></details>
+    <details><summary>Ça marche avec une manette Xbox ou Switch ?</summary><p>Oui, pour le test rapide : boutons, sticks, gâchettes, dérive, circularité et vibration selon le navigateur. Les infos usine, la batterie, l'historique d'usage et la calibration sont réservés à la DualSense et à la DualSense Edge.</p></details>
+    <details><summary>Mes données sont-elles envoyées quelque part ?</summary><p>Non. Tout se passe dans votre navigateur : aucune mesure n'est envoyée sur internet. L'historique des contrôles reste sur cet ordinateur.</p></details>
   </div>
 </section>
 <div id="seenBefore" class="banner info" hidden></div>
