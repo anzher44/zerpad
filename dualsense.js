@@ -227,10 +227,26 @@
           this.info.spiderVersion = dv.getUint32(56, true);
         }
         this.info.boardModel = boardModel(this.info.hwVersion, this.model);
+        // DualShock-style firmware date check used by dualshock-tools: 2020/2021 builds are outdated
+        this.info.oldFirmware = / 202[01]$/.test(this.info.buildDate);
         this.log('Firmware 0x' + hex(this.info.fwVersion, 8) + ', update 0x' + hex(this.info.updateVersion || 0, 4));
       } catch (e) { this.log('Firmware info unreadable: ' + e.message); }
 
+      // 0x22: Bluetooth patch version (not every firmware exposes it)
+      if (this._hasFeature(0x22)) {
+        try {
+          const b = await this._getFeature(0x22);
+          if (b.length >= 35) this.info.btPatch = new DataView(b.buffer, b.byteOffset, b.byteLength).getUint32(31, true);
+        } catch (e) { this.log('Bluetooth patch info unreadable: ' + e.message); }
+      }
+
       this.dispatchEvent(new Event('info'));
+    }
+
+    _hasFeature(id) {
+      const cols = this.device.collections || [];
+      if (!cols.length) return true;
+      return cols.some(c => (c.featureReports || []).some(r => r.reportId === id));
     }
 
     // Factory "test" commands (0x80 → 0x81), read-only
@@ -302,7 +318,7 @@
       const hexOf = u8 => Array.from(u8).map(x => hex(x)).join('');
       let r;
       if ((r = await this.testCommand(1, 19))) {
-        f.serial = asciiOf(r, 32);
+        f.serial = asciiOf(r, 17);
         if (f.serial) { f.colorCode = f.serial.slice(4, 6); f.color = COLORS[f.colorCode] || null; }
       }
       if ((r = await this.testCommand(9, 2))) {
@@ -312,8 +328,8 @@
       if ((r = await this.testCommand(4, 3))) { const mv = r[0] | (r[1] << 8); if (mv > 2000 && mv < 5000) f.batteryVoltage = mv; }
       // Calibration memory (NVS) state: locked = normal
       if ((r = await this.testCommand(3, 3))) f.nvsLocked = r[0] === 1 ? true : r[0] === 0 ? false : null;
-      // Stick fine-tune query: every genuine DualSense answers it
-      r = await this.testCommand(12, 2);
+      // Stick fine-tune query: every genuine controller answers it (12/2 DualSense, 12/4 Edge)
+      r = await this.testCommand(12, this.model === 'DualSense Edge' ? 4 : 2);
       f.finetuneAnswered = !!r;
       // Authenticity
       const year = parseInt(String(this.info.buildDate || '').trim().slice(-4), 10);
@@ -325,7 +341,7 @@
       // Publish the essentials right away, then fill in the rest
       this.factory = f;
       this.dispatchEvent(new Event('factory'));
-      if ((r = await this.testCommand(1, 17))) { const s = asciiOf(r, 24); f.pcbaId = s ? s.split('').reverse().join('').trim() : null; }
+      if ((r = await this.testCommand(1, 17))) { const s = asciiOf(r, 14); f.pcbaId = s ? s.split('').reverse().join('').trim() : null; }
       if (!f.pcbaId && (r = await this.testCommand(1, 4))) {
         let v = 0n; for (let i = 5; i >= 0; i--) v = (v << 8n) | BigInt(r[i]);
         if (v) f.pcbaId = '0x' + v.toString(16).toUpperCase().padStart(12, '0');
@@ -333,9 +349,9 @@
       if ((r = await this.testCommand(1, 9)) && r[0] === 0) {
         f.mcuUniqueId = hexOf(r.slice(1, 9).reverse());
       }
-      if ((r = await this.testCommand(1, 24))) f.batteryBarcode = asciiOf(r, 32);
-      if ((r = await this.testCommand(1, 26))) f.vcmLeft = asciiOf(r, 32);
-      if ((r = await this.testCommand(1, 28))) f.vcmRight = asciiOf(r, 32);
+      if ((r = await this.testCommand(1, 24))) f.batteryBarcode = asciiOf(r, 23);
+      if ((r = await this.testCommand(1, 26))) f.vcmLeft = asciiOf(r, 16);
+      if ((r = await this.testCommand(1, 28))) f.vcmRight = asciiOf(r, 16);
       if ((r = await this.testCommand(1, 21))) { const h = hexOf(r.slice(0, 32)); if (/[^0F]/.test(h)) f.assembleParts = h.replace(/(00)+$/, ''); }
       if (this.transport === 'usb') {
         if ((r = await this.testCommand(5, 2))) f.touchpadId = hexOf(r.slice(0, 8));
@@ -416,19 +432,37 @@
       return this.nvsStatus();
     }
 
-    /** Reboots the controller: unsaved (temporary) calibration is discarded. */
+    /**
+     * Plays the controller's built-in test tone on its speaker or headphone jack (factory audio
+     * test 6/4 then 6/2). Nothing is written to memory; the tone stops with toneOff().
+     */
+    async toneOn(target = 'speaker') {
+      const p = new Array(20).fill(0);
+      if (target === 'headphone') { p[4] = 4; p[6] = 6; } else p[2] = 8;
+      await this._lockedFeature(0x80, [6, 4, ...p]);
+      await this._lockedFeature(0x80, [6, 2, 1, 1, 0]);
+    }
+    async toneOff() { await this._lockedFeature(0x80, [6, 2, 0, 1, 0]); }
+    _lockedFeature(id, bytes) {
+      const run = () => this._sendFeature(id, bytes);
+      const p = this._testLock.then(run, run);
+      this._testLock = p.catch(() => null);
+      return p;
+    }
+
     /** Turns the controller off. Only supported over Bluetooth. */
     async powerOff() {
       if (this.transport !== 'bt') throw new Error('power off only works over Bluetooth');
       await this._sendFeature(0x08, [2]);
     }
 
+    /** Reboots the controller: unsaved (temporary) calibration is discarded. */
     async reboot() {
       try { await this._sendFeature(0x80, [1, 1]); } catch (e) { /* the controller disconnects */ }
     }
 
-    // "v2" rumble from update 2.21 onwards (same rule as the Linux driver)
-    get vibrationV2() { return (this.info.updateVersion || 0) >= 0x0215; }
+    // "v2" rumble: DualSense from update 2.21 onwards, DualSense Edge always (same rule as the Linux driver)
+    get vibrationV2() { return this.model === 'DualSense Edge' || (this.info.updateVersion || 0) >= 0x0215; }
 
     _onInput(e) {
       const id = e.reportId;
@@ -607,6 +641,8 @@
       });
     }
     st.trigStatusR = u8[o + 41]; st.trigStatusL = u8[o + 42];
+    // DualSense Edge: position of the L2/R2 travel stop sliders (0-2), bits 4-5 and 6-7
+    st.edgeStops = { l2: (u8[o + 48] >> 4) & 3, r2: u8[o + 48] >> 6 };
     const status = u8[o + 52];
     const lvl = status & 0x0f, chg = (status & 0xf0) >> 4;
     let pct = null, label;
@@ -656,13 +692,15 @@
     return c;
   }
 
+  // Same normalization as the Linux driver: the gyro bias only enters the sensitivity
+  // (it is not subtracted), the accelerometer bias is subtracted.
   function applyGyro(raw, calib) {
-    if (calib && calib.valid) return raw.map((v, i) => (v - calib.gyro[i].bias) * calib.gyro[i].k);
-    return raw.map(v => v / 16.384);   // fallback: ±2000 °/s
+    if (calib && calib.valid) return raw.map((v, i) => v * calib.gyro[i].k);
+    return raw.map(v => v * 2048 / 32767);   // no usable calibration: ±2048 °/s full scale
   }
   function applyAccel(raw, calib) {
     if (calib && calib.valid) return raw.map((v, i) => (v - calib.accel[i].bias) * calib.accel[i].k);
-    return raw.map(v => v / 8192);     // fallback: ±4 g
+    return raw.map(v => v * 4 / 32767);      // no usable calibration: ±4 g full scale
   }
 
   // Color from characters 5-6 of the serial number (sources: dualshock-tools, daidr/dualsense-tester)
@@ -673,7 +711,7 @@
     '13': 'HyperPop Techno Red', '14': 'HyperPop Remix Green', '15': 'HyperPop Rhythm Blue', '30': '30th Anniversary',
     'Z1': 'God of War Ragnarök', 'Z2': 'Spider-Man 2', 'Z3': 'Astro Bot', 'Z4': 'Fortnite', 'Z5': 'Monster Hunter Wilds',
     'Z6': 'The Last of Us', 'ZA': 'God of War 20th Anniversary', 'ZB': 'Icon Blue Limited Edition',
-    'ZC': 'Astro Bot Joyful / Ghost of Yōtei Limited Edition', 'ZD': 'Marathon Limited Edition',
+    'ZC': 'Ghost of Yōtei Limited Edition', 'ZD': 'Marathon Limited Edition',
     'ZE': 'Genshin Impact Limited Edition', 'ZF': '007 First Light Limited Edition',
   };
 
@@ -736,8 +774,12 @@
       t.buttons.l2 = tEdgeStroke(d, 122) + tEdgeStroke(d, 126) + tEdgeStroke(d, 130);
       t.buttons.r2 = tEdgeStroke(d, 138) + tEdgeStroke(d, 142) + tEdgeStroke(d, 146);
       t.buttons.mute = tCountHigh(d, 170); t.buttons.paddleL = tCountHigh(d, 174); t.buttons.paddleR = tCountHigh(d, 178);
-      t.stickModuleL = { serial: tAscii(d, 182, 17, true), x: d.getUint32(199, true), y: d.getUint32(205, true) };
-      t.stickModuleR = { serial: tAscii(d, 219, 17, true), x: d.getUint32(236, true), y: d.getUint32(242, true) };
+      t.stickModuleL = { serial: tAscii(d, 182, 17, true), x: d.getUint32(199, true), y: d.getUint32(205, true),
+        xRange: d.getUint16(203, true), yRange: d.getUint16(209, true), presses: d.getUint32(211, true), fnPresses: d.getUint32(215, true) };
+      t.stickModuleR = { serial: tAscii(d, 219, 17, true), x: d.getUint32(236, true), y: d.getUint32(242, true),
+        xRange: d.getUint16(240, true), yRange: d.getUint16(246, true), presses: d.getUint32(248, true), fnPresses: d.getUint32(252, true) };
+      t.l2Strokes = { short: tEdgeStroke(d, 122), middle: tEdgeStroke(d, 126), full: tEdgeStroke(d, 130) };
+      t.r2Strokes = { short: tEdgeStroke(d, 138), middle: tEdgeStroke(d, 142), full: tEdgeStroke(d, 146) };
     } else {
       t.sticks = {
         lx: d.getUint32(86, true), ly: d.getUint32(92, true), rx: d.getUint32(98, true), ry: d.getUint32(104, true),
