@@ -109,6 +109,9 @@
     for (var i = 0; i < nav.length; i++) { var c = String(nav[i]).slice(0, 2).toLowerCase(); if (all.indexOf(c) >= 0) { l = c; break; } }
   }
   if (l !== 'fr') {
+    // fetch the dictionary now rather than after the whole page
+    var pl = document.createElement('link'); pl.rel = 'preload'; pl.as = 'script'; pl.href = 'i18n-' + l + '.js';
+    document.head.appendChild(pl);
     document.documentElement.classList.add('i18n-wait');
     setTimeout(function () { document.documentElement.classList.remove('i18n-wait'); }, 2000);
   }
@@ -173,7 +176,7 @@
       <button id="btnConnect2" class="primary big">Connecter la manette</button>
       <p class="small">Fonctionne avec Google Chrome ou Microsoft Edge sur ordinateur. Rien à installer, aucune donnée envoyée.</p>
     </div>
-    <img class="wl-img" src="assets/controllers/00.webp" alt="Manette DualSense" width="440" height="245">
+    <img class="wl-img" src="assets/controllers/00.webp" alt="Manette DualSense" width="440" height="245" fetchpriority="high">
   </div>
   <div class="features">
     <div><h2>Contrôle complet</h2><p>22 tests guidés et un verdict clair : validée ou non validée.</p></div>
