@@ -21,5 +21,7 @@ jobs:
         run: node test/bt-test.js
       - name: Signal jump detection
         run: node test/glitch-test.js
+      - name: Quick test without WebHID
+        run: node test/quick-test.js
       - name: Translations
         run: node test/i18n-check.js

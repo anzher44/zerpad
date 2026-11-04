@@ -74,6 +74,27 @@
 <div id="unsupported" class="banner warn" hidden data-i18n-html>
   Votre navigateur ne gère pas <b>WebHID</b>. Ouvrez cette page avec <b>Google Chrome</b> ou <b>Microsoft Edge</b> (ordinateur).
 </div>
+<section id="quick" class="card quick" hidden>
+  <h2>Test rapide sans WebHID</h2>
+  <p class="small">Ce navigateur permet seulement un test simple : boutons, sticks, gâchettes et vibration. Pour les infos usine, la batterie, la calibration et l'historique d'usage, utilisez Chrome ou Edge sur ordinateur.</p>
+  <p id="qStatus" class="qstatus"></p>
+  <div class="qgrid">
+    <div class="qcol"><canvas id="qStickL" class="qstick"></canvas><div class="small">Stick gauche <span id="qValL" class="mono"></span></div></div>
+    <div class="qcol"><canvas id="qStickR" class="qstick"></canvas><div class="small">Stick droit <span id="qValR" class="mono"></span></div></div>
+    <div class="qcol qtrig">
+      <div class="small">L2 <span id="qL2v" class="mono"></span></div><div class="qbar"><i id="qL2"></i></div>
+      <div class="small">R2 <span id="qR2v" class="mono"></span></div><div class="qbar"><i id="qR2"></i></div>
+    </div>
+  </div>
+  <div id="qButtons" class="qbuttons"></div>
+  <p id="qCount" class="small"></p>
+  <div class="qactions">
+    <button id="qDrift">Mesurer la dérive (3 s)</button>
+    <button id="qRumble">Tester la vibration</button>
+  </div>
+  <p id="qDriftRes" class="small" aria-live="polite"></p>
+  <p id="qRumbleRes" class="small" aria-live="polite"></p>
+</section>
 <section id="welcome">
   <div class="wl-main">
     <div class="wl-text">
@@ -423,5 +444,6 @@
 <script src="app.js"></script>
 <script src="calibration.js"></script>
 <script src="games.js"></script>
+<script src="quick.js"></script>
 </body>
 </html>

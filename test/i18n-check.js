@@ -13,7 +13,7 @@ const unescape = s => s.replace(/\\(['"\\])/g, '$1').replace(/\\n/g, '\n');
 // Literal French keys in the scripts
 function scriptKeys() {
   const keys = new Set();
-  for (const f of ['app.js', 'calibration.js', 'games.js']) {
+  for (const f of ['app.js', 'calibration.js', 'games.js', 'quick.js']) {
     const src = fs.readFileSync(path.join(root, f), 'utf8');
     const res = [
       /\btr\(\s*'((?:[^'\\]|\\.)*)'/g,
