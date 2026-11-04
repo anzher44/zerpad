@@ -535,11 +535,8 @@
  "Stick": "Stick",
  "Dosage": "Dosaggio",
  "Maintenez la gâchette dans la zone verte malgré la résistance de la gâchette adaptative. Un exercice de précision sur toute la course.": "Tieni il grilletto nella zona verde nonostante la resistenza del grilletto adattivo. Un esercizio di precisione su tutta la corsa.",
- "Choisissez un réglage : la manette vibre jusqu'à « Arrêter ».": "Scegli un'impostazione: il controller vibra fino a «Ferma».",
  "Forte, les deux moteurs": "Forte, entrambi i motori",
  "Légère, les deux moteurs": "Leggera, entrambi i motori",
- "Gauche seulement": "Solo sinistro",
- "Droite seulement": "Solo destro",
  "Barre lumineuse": "Barra luminosa",
  "Cycle de couleurs": "Ciclo di colori",
  "Éteintes": "Spenti",
@@ -556,5 +553,12 @@
  "Bleu": "Blu",
  "Violet": "Viola",
  "Rose": "Rosa",
- "Blanc": "Bianco"
+ "Blanc": "Bianco",
+ "Choisissez un réglage. La vibration s'arrête seule après 10 s, avec « Arrêter » ou en cliquant de nouveau sur le réglage.": "Scegli un'impostazione. La vibrazione si ferma da sola dopo 10 s, con «Ferma» o facendo di nuovo clic sull'impostazione.",
+ "Moyenne, les deux moteurs": "Media, entrambi i motori",
+ "Pulsations": "Impulsi",
+ "Gauche seule (moteur fort)": "Solo sinistro (motore forte)",
+ "Droite seule (moteur fin)": "Solo destro (motore fine)",
+ "Montée progressive (0 à 100 % en 5 s)": "Salita graduale (da 0 a 100 % in 5 s)",
+ "En marche, arrêt automatique dans {s} s": "In funzione, arresto automatico tra {s} s"
 };

@@ -535,11 +535,8 @@
  "Stick": "Stick",
  "Dosage": "Control",
  "Maintenez la gâchette dans la zone verte malgré la résistance de la gâchette adaptative. Un exercice de précision sur toute la course.": "Hold the trigger inside the green zone against the adaptive trigger's resistance. A precision exercise over the whole travel.",
- "Choisissez un réglage : la manette vibre jusqu'à « Arrêter ».": "Pick a setting: the controller rumbles until \"Stop\".",
  "Forte, les deux moteurs": "Strong, both motors",
  "Légère, les deux moteurs": "Light, both motors",
- "Gauche seulement": "Left only",
- "Droite seulement": "Right only",
  "Barre lumineuse": "Lightbar",
  "Cycle de couleurs": "Color cycle",
  "Éteintes": "Off",
@@ -556,5 +553,12 @@
  "Bleu": "Blue",
  "Violet": "Purple",
  "Rose": "Pink",
- "Blanc": "White"
+ "Blanc": "White",
+ "Choisissez un réglage. La vibration s'arrête seule après 10 s, avec « Arrêter » ou en cliquant de nouveau sur le réglage.": "Pick a setting. Rumble stops by itself after 10 s, with \"Stop\" or by clicking the setting again.",
+ "Moyenne, les deux moteurs": "Medium, both motors",
+ "Pulsations": "Pulses",
+ "Gauche seule (moteur fort)": "Left only (strong motor)",
+ "Droite seule (moteur fin)": "Right only (fine motor)",
+ "Montée progressive (0 à 100 % en 5 s)": "Gradual ramp (0 to 100 % in 5 s)",
+ "En marche, arrêt automatique dans {s} s": "Running, automatic stop in {s} s"
 };

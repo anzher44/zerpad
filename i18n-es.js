@@ -535,11 +535,8 @@
  "Stick": "Stick",
  "Dosage": "Precisión",
  "Maintenez la gâchette dans la zone verte malgré la résistance de la gâchette adaptative. Un exercice de précision sur toute la course.": "Mantenga el gatillo en la zona verde pese a la resistencia del gatillo adaptativo. Un ejercicio de precisión en todo el recorrido.",
- "Choisissez un réglage : la manette vibre jusqu'à « Arrêter ».": "Elija un ajuste: el mando vibra hasta pulsar «Detener».",
  "Forte, les deux moteurs": "Fuerte, ambos motores",
  "Légère, les deux moteurs": "Suave, ambos motores",
- "Gauche seulement": "Solo izquierdo",
- "Droite seulement": "Solo derecho",
  "Barre lumineuse": "Barra de luz",
  "Cycle de couleurs": "Ciclo de colores",
  "Éteintes": "Apagados",
@@ -556,5 +553,12 @@
  "Bleu": "Azul",
  "Violet": "Violeta",
  "Rose": "Rosa",
- "Blanc": "Blanco"
+ "Blanc": "Blanco",
+ "Choisissez un réglage. La vibration s'arrête seule après 10 s, avec « Arrêter » ou en cliquant de nouveau sur le réglage.": "Elija un ajuste. La vibración se detiene sola tras 10 s, con «Detener» o pulsando de nuevo el ajuste.",
+ "Moyenne, les deux moteurs": "Media, ambos motores",
+ "Pulsations": "Pulsos",
+ "Gauche seule (moteur fort)": "Solo izquierdo (motor fuerte)",
+ "Droite seule (moteur fin)": "Solo derecho (motor fino)",
+ "Montée progressive (0 à 100 % en 5 s)": "Subida progresiva (0 a 100 % en 5 s)",
+ "En marche, arrêt automatique dans {s} s": "En marcha, parada automática en {s} s"
 };

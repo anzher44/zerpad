@@ -521,9 +521,8 @@
     const d = b.dataset;
     if (!ds.device) return;
     if (d.rumble) {
-      const [l, r] = d.rumble.split(',').map(Number);
-      ds.update({ motorL: l, motorR: r });
-      if (l || r) choose(b); else b.closest('.seg').querySelectorAll('button').forEach(x => { x.classList.remove('sel'); x.setAttribute('aria-pressed', false); });
+      if (d.rumble === '0,0' || b.classList.contains('sel')) stopRumble();
+      else { startRumble(d.rumble); choose(b); }
     } else if (d.color) {
       stopCycle();
       if (d.color === 'cycle') {
@@ -551,6 +550,45 @@
     }
   });
   ds.addEventListener('closed', stopCycle);
+
+  // Rumble presets. Every setting stops by itself after 10 s, when another tab is opened or the
+  // controller is disconnected, so a motor is never left running.
+  const RUMBLE_MS = 10000;
+  let rumbleTimer = 0, rumbleTick = 0;
+  function startRumble(kind) {
+    stopRumble(true);
+    const t0 = performance.now();
+    const status = () => {
+      const left = Math.max(0, Math.ceil((t0 + (kind === 'ramp' ? 5000 : RUMBLE_MS) - performance.now()) / 1000));
+      $('rumbleStatus').textContent = tr('En marche, arrêt automatique dans {s} s', { s: left });
+    };
+    if (kind === 'pulse') {
+      let on = false;
+      rumbleTick = setInterval(() => { on = !on; ds.update(on ? { motorL: 255, motorR: 255 } : { motorL: 0, motorR: 0 }); status(); }, 400);
+      ds.update({ motorL: 255, motorR: 255 }); on = true;
+    } else if (kind === 'ramp') {
+      rumbleTick = setInterval(() => {
+        const v = Math.min(255, Math.round((performance.now() - t0) / 5000 * 255));
+        ds.update({ motorL: v, motorR: v }); status();
+        if (v >= 255) stopRumble();
+      }, 100);
+    } else {
+      const [l, r] = kind.split(',').map(Number);
+      ds.update({ motorL: l, motorR: r });
+      rumbleTick = setInterval(status, 500);
+    }
+    status();
+    rumbleTimer = setTimeout(stopRumble, kind === 'ramp' ? 5200 : RUMBLE_MS);
+  }
+  function stopRumble(restart) {
+    clearInterval(rumbleTick); clearTimeout(rumbleTimer); rumbleTick = rumbleTimer = 0;
+    if (ds.device && (ds.out.motorL || ds.out.motorR)) ds.update({ motorL: 0, motorR: 0 });
+    if (restart === true) return;
+    $('rumbleStatus').textContent = '';
+    $('rumbleSet').querySelectorAll('button').forEach(x => { x.classList.remove('sel'); x.setAttribute('aria-pressed', false); });
+  }
+  ds.addEventListener('closed', () => stopRumble());
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { if (t.dataset.tab !== 'out') stopRumble(); }));
 
   // Controller audio (USB)
   let audioOut = null, audioIn = null, micStream = null, micRAF = 0;

@@ -114,6 +114,7 @@
       this._rateT0 = 0; this._rateN = 0;
       this._btSeq = 0;
       this._lightbarSetupDone = false;
+      this._rumbleStop = 0; this._rumbleStart = false;
       this.out = {
         motorL: 0, motorR: 0, r: 0, g: 64, b: 255,
         audioPath: null, speakerVol: 0x64, headphoneVol: 0x7f,
@@ -511,8 +512,13 @@
     buildCommon() {
       const o = this.out;
       const c = new Uint8Array(47);
-      // valid_flag0: compatible rumble (v1), haptics select, right/left trigger motors
-      c[0] = (this.vibrationV2 ? 0 : 0x01) | 0x02 | 0x04 | 0x08;
+      // valid_flag0: right/left trigger motors. The rumble bits are only sent while a motor runs and in
+      // the two reports that stop it, as SDL does: leaving them off gives the haptics back to the firmware.
+      c[0] = 0x04 | 0x08;
+      const rumbleOn = !!(o.motorL || o.motorR);
+      const rumbleBits = rumbleOn || this._rumbleStop > 0;
+      if (rumbleBits || this._rumbleStart) c[0] |= 0x02;               // haptics select (classic rumble)
+      if (rumbleBits && !this.vibrationV2 && !this._rumbleStart) c[0] |= 0x01;   // compatible rumble, older firmwares
       // valid_flag1: mic LED, lightbar, player LEDs
       c[1] = 0x01 | 0x04 | 0x10;
       // Audio: output path (bits 4-5 of byte 7) and volumes, only once set by the caller
@@ -522,13 +528,15 @@
         c[5] = o.speakerVol & 0xff;
         c[7] = (o.audioPath & 0x03) << 4;
       }
-      c[2] = o.motorR & 0xff;   // right motor (light)
-      c[3] = o.motorL & 0xff;   // left motor (strong)
+      if (rumbleBits && !this._rumbleStart) {
+        c[2] = o.motorR & 0xff;   // right motor (light, high frequency)
+        c[3] = o.motorL & 0xff;   // left motor (strong, low frequency)
+      }
       c[8] = o.muteLed & 0xff;
       c.set(o.trigR.slice(0, 11), 10);
       c.set(o.trigL.slice(0, 11), 21);
       // valid_flag2: lightbar setup (once) + v2 rumble
-      let vf2 = this.vibrationV2 ? 0x04 : 0;
+      let vf2 = rumbleBits && this.vibrationV2 && !this._rumbleStart ? 0x04 : 0;   // improved rumble, recent firmwares
       if (!this._lightbarSetupDone) { vf2 |= 0x02; c[41] = 0x02; }
       c[38] = vf2;
       c[42] = o.ledBrightness & 0xff;
@@ -541,12 +549,18 @@
     update(patch) {
       const wasRumbling = !!(this.out.motorL || this.out.motorR);
       Object.assign(this.out, patch);
-      // Recent firmwares (rumble v2) stop rumbling unless the report is refreshed, so resend it
-      // every 100 ms while a motor runs, and send the stop twice.
+      // Refresh the report every 100 ms while a motor runs (some firmwares let the rumble fade otherwise),
+      // and send the stop twice.
       const rumbling = !!(this.out.motorL || this.out.motorR);
+      if (rumbling && !wasRumbling) {
+        // Like SDL: first a report that only selects classic rumble, then the motor values
+        this._rumbleStart = true;
+        this.sendOutput();
+        this._rumbleStart = false;
+      }
       if (rumbling && !this._rumbleTimer) this._rumbleTimer = setInterval(() => this.sendOutput(), 100);
       if (!rumbling && this._rumbleTimer) { clearInterval(this._rumbleTimer); this._rumbleTimer = null; }
-      if (wasRumbling && !rumbling) setTimeout(() => this.sendOutput(), 60);
+      if (wasRumbling && !rumbling) { this._rumbleStop = 2; setTimeout(() => this.sendOutput(), 60); }
       if (this._sendQueued) return;
       this._sendQueued = true;
       setTimeout(() => { this._sendQueued = false; this.sendOutput(); }, 10);
@@ -555,6 +569,7 @@
     sendOutput() {
       if (!this.device) return Promise.resolve();
       const c = this.buildCommon();
+      if (!(this.out.motorL || this.out.motorR) && this._rumbleStop > 0) this._rumbleStop--;
       this._sending = this._sending.then(async () => {
         try {
           if (this.transport === 'bt') {

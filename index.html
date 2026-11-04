@@ -221,14 +221,18 @@
   <div class="grid3">
     <div class="card">
       <h2>Vibrations</h2>
-      <p class="small">Choisissez un réglage : la manette vibre jusqu'à « Arrêter ».</p>
-      <div class="seg grid-btns">
+      <p class="small">Choisissez un réglage. La vibration s'arrête seule après 10 s, avec « Arrêter » ou en cliquant de nouveau sur le réglage.</p>
+      <div class="seg grid-btns" id="rumbleSet">
         <button data-rumble="255,255">Forte, les deux moteurs</button>
-        <button data-rumble="70,110">Légère, les deux moteurs</button>
-        <button data-rumble="255,0">Gauche seulement</button>
-        <button data-rumble="0,255">Droite seulement</button>
+        <button data-rumble="140,140">Moyenne, les deux moteurs</button>
+        <button data-rumble="70,70">Légère, les deux moteurs</button>
+        <button data-rumble="pulse">Pulsations</button>
+        <button data-rumble="255,0">Gauche seule (moteur fort)</button>
+        <button data-rumble="0,255">Droite seule (moteur fin)</button>
+        <button data-rumble="ramp" class="stop">Montée progressive (0 à 100 % en 5 s)</button>
         <button data-rumble="0,0" class="stop">Arrêter</button>
       </div>
+      <p id="rumbleStatus" class="small"></p>
     </div>
     <div class="card">
       <h2>Barre lumineuse &amp; LED</h2>
