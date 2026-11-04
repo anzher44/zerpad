@@ -28,7 +28,7 @@ The interface is available in French, English, Spanish, German, Italian and Port
 
 ## Requirements
 
-- Chrome or Edge on a desktop computer. Firefox, Safari and phones do not support WebHID: they get a quick test instead (buttons, sticks, triggers, drift, vibration where the browser allows it) through the Gamepad API.
+- Chrome or Edge on a desktop computer. Firefox, Safari and phones do not support WebHID: they get a quick test instead (buttons, sticks, triggers, drift, circularity, vibration where the browser allows it) through the Gamepad API. The same quick test opens in Chrome or Edge for other controllers (Xbox, Switch Pro, generic).
 - USB cable recommended. Bluetooth works for most tests, but factory info is partial and audio tests and calibration need USB.
 
 ## Usage

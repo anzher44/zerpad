@@ -1,17 +1,28 @@
-// Quick test for browsers without WebHID (Firefox, Safari, Chrome on Android), through the
-// standard Gamepad API: buttons, sticks, triggers, stick drift and a short rumble when the
-// browser offers it. Factory data, calibration and telemetry need WebHID and stay unavailable.
+// Quick test through the standard Gamepad API: buttons, sticks, triggers, stick drift and a short
+// rumble when the browser offers it. Shown for any controller in browsers without WebHID (Firefox,
+// Safari, Chrome on Android), and in Chrome or Edge for controllers other than a DualSense.
+// Factory data, calibration and telemetry need WebHID and a DualSense.
 (function () {
   'use strict';
-  if (window.DualSense && window.DualSense.supported) return;
   const box = document.getElementById('quick');
   if (!box || !('getGamepads' in navigator)) return;
+  const hid = !!(window.DualSense && window.DualSense.supported);
   const $ = id => document.getElementById(id);
   const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  box.hidden = false;
+  const setText = (id, t) => { const e = $(id); if (e.textContent !== t) e.textContent = t; };
+  box.hidden = hid;
+  const sony = g => /054c|sony|dualsense|dualshock/i.test(g.id);
+  // In Chrome or Edge a DualSense goes through WebHID and the full test, other controllers come here
+  const usable = g => g && g.connected && !(hid && sony(g));
 
-  // Standard mapping order (w3c.github.io/gamepad/#remapping), DualSense names
-  const NAMES = ['×', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'Create', 'Options', 'L3', 'R3', '↑', '↓', '←', '→', 'PS', 'Touchpad'];
+  // Standard mapping order (w3c.github.io/gamepad/#remapping), names per controller family
+  const LAYOUTS = {
+    sony: ['×', '○', '□', '△', 'L1', 'R1', 'L2', 'R2', 'Create', 'Options', 'L3', 'R3', '↑', '↓', '←', '→', 'PS', 'Touchpad'],
+    nintendo: ['B', 'A', 'Y', 'X', 'L', 'R', 'ZL', 'ZR', '−', '+', 'L3', 'R3', '↑', '↓', '←', '→', 'Home', 'Capture'],
+    xbox: ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Menu', 'LS', 'RS', '↑', '↓', '←', '→', 'Xbox', 'Share'],
+  };
+  const family = g => sony(g) ? 'sony' : /057e|nintendo|pro controller|joy-con/i.test(g.id) ? 'nintendo' : 'xbox';
+  const NAMES = LAYOUTS.sony;
   const grid = $('qButtons');
   NAMES.forEach((n, i) => {
     const b = document.createElement('span');
@@ -36,7 +47,7 @@
   }
 
   const pad = () => { const p = index == null ? null : navigator.getGamepads()[index]; return p && p.connected ? p : null; };
-  window.addEventListener('gamepadconnected', e => { if (index == null) index = e.gamepad.index; });
+  window.addEventListener('gamepadconnected', e => { if (index == null && usable(e.gamepad)) index = e.gamepad.index; });
   window.addEventListener('gamepaddisconnected', e => { if (e.gamepad.index === index) { index = null; seen.clear(); } });
 
   function stick(cv, x, y, k) {
@@ -66,10 +77,22 @@
   function frame() {
     requestAnimationFrame(frame);
     let p = pad();
-    if (!p) { const any = [...navigator.getGamepads()].find(g => g && g.connected); if (any) { index = any.index; p = any; } }
-    $('qStatus').textContent = p ? p.id + (p.mapping === 'standard' ? '' : tr(' (disposition non standard)'))
-      : tr('Branchez la manette, puis appuyez sur un bouton pour qu\'elle apparaisse.');
+    if (p && !usable(p)) { index = null; p = null; }
+    if (!p) { const any = [...navigator.getGamepads()].find(usable); if (any) { index = any.index; p = any; } }
+    if (hid) {
+      box.hidden = !p;
+      setText('qTitle', tr('Test rapide pour une autre manette'));
+      setText('qDesc', tr('Cette manette n\'est pas une DualSense : seul le test simple est possible (boutons, sticks, gâchettes et vibration). Les infos usine, la batterie, la calibration et l\'historique d\'usage concernent la DualSense.'));
+    }
+    setText('qStatus', p ? p.id + (p.mapping === 'standard' ? '' : tr(' (disposition non standard)'))
+      : tr('Branchez la manette, puis appuyez sur un bouton pour qu\'elle apparaisse.'));
     if (!p) return;
+    const names = LAYOUTS[family(p)];
+    if (grid.dataset.family !== family(p)) {
+      grid.dataset.family = family(p);
+      grid.querySelectorAll('.qbtn').forEach(b => { b.textContent = names[+b.dataset.i]; });
+      setText('qL2n', names[6]); setText('qR2n', names[7]);
+    }
     const ax = i => p.axes[i] || 0;
     if (!drift) { track(0, ax(0), ax(1)); track(1, ax(2), ax(3)); }
     stick($('qStickL'), ax(0), ax(1), 0); stick($('qStickR'), ax(2), ax(3), 1);

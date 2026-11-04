@@ -1,5 +1,7 @@
 // Spanish translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).es = {
+  "Test rapide pour une autre manette": "Prueba rápida para otro mando",
+  "Cette manette n'est pas une DualSense : seul le test simple est possible (boutons, sticks, gâchettes et vibration). Les infos usine, la batterie, la calibration et l'historique d'usage concernent la DualSense.": "Este mando no es un DualSense: solo es posible la prueba sencilla (botones, sticks, gatillos y vibración). La información de fábrica, la batería, la calibración y el historial de uso son para el DualSense.",
   "contour couvert ": "contorno cubierto ",
   "Circularité, faites tourner les sticks en butée": "Circularidad, gira los sticks hasta el tope",
   "Contrôlé avec ZerPad le ": "Comprobado con ZerPad el ",

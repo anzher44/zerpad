@@ -75,15 +75,15 @@
   Votre navigateur ne gère pas <b>WebHID</b>. Ouvrez cette page avec <b>Google Chrome</b> ou <b>Microsoft Edge</b> (ordinateur).
 </div>
 <section id="quick" class="card quick" hidden>
-  <h2>Test rapide sans WebHID</h2>
-  <p class="small">Ce navigateur permet seulement un test simple : boutons, sticks, gâchettes et vibration. Pour les infos usine, la batterie, la calibration et l'historique d'usage, utilisez Chrome ou Edge sur ordinateur.</p>
+  <h2 id="qTitle">Test rapide sans WebHID</h2>
+  <p id="qDesc" class="small">Ce navigateur permet seulement un test simple : boutons, sticks, gâchettes et vibration. Pour les infos usine, la batterie, la calibration et l'historique d'usage, utilisez Chrome ou Edge sur ordinateur.</p>
   <p id="qStatus" class="qstatus"></p>
   <div class="qgrid">
     <div class="qcol"><canvas id="qStickL" class="qstick"></canvas><div class="small">Stick gauche <span id="qValL" class="mono"></span></div></div>
     <div class="qcol"><canvas id="qStickR" class="qstick"></canvas><div class="small">Stick droit <span id="qValR" class="mono"></span></div></div>
     <div class="qcol qtrig">
-      <div class="small">L2 <span id="qL2v" class="mono"></span></div><div class="qbar"><i id="qL2"></i></div>
-      <div class="small">R2 <span id="qR2v" class="mono"></span></div><div class="qbar"><i id="qR2"></i></div>
+      <div class="small"><span id="qL2n">L2</span> <span id="qL2v" class="mono"></span></div><div class="qbar"><i id="qL2"></i></div>
+      <div class="small"><span id="qR2n">R2</span> <span id="qR2v" class="mono"></span></div><div class="qbar"><i id="qR2"></i></div>
     </div>
   </div>
   <div id="qButtons" class="qbuttons"></div>
