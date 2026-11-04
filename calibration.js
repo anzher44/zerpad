@@ -39,6 +39,8 @@
   $('calAck').addEventListener('change', renderButtons);
   ds.addEventListener('ready', () => { unsaved = false; before = after = null; renderCompare(); setTimeout(refreshNvs, 3000); });
   ds.addEventListener('factory', renderReq);
+  // Closing the page during a step or with unsaved changes asks for confirmation
+  window.addEventListener('beforeunload', e => { if (ds.device && (busy || unsaved)) { e.preventDefault(); e.returnValue = ''; } });
   ds.addEventListener('closed', () => { busy = false; unsaved = false; nvs = null; renderReq(); renderButtons(); setStep(() => tr('Manette déconnectée.')); });
   document.querySelector('.tab[data-tab=cal]').addEventListener('click', () => { refreshNvs(); renderButtons(); });
 

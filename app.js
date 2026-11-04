@@ -1,7 +1,7 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.6.2';
+  const VERSION = '2.6.3';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -553,6 +553,8 @@
     }
   });
   ds.addEventListener('closed', stopCycle);
+  // A hidden tab gets its timers throttled, so the motors are stopped instead of left running
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stopRumble(); });
 
   // Rumble presets. Every setting stops by itself after 10 s, when another tab is opened or the
   // controller is disconnected, so a motor is never left running.
