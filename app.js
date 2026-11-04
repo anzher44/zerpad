@@ -1,7 +1,7 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.7.0';
+  const VERSION = '2.8.0';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1319,6 +1319,43 @@
     a.href = URL.createObjectURL(blob);
     a.download = 'zerpad-' + ((r.factory && r.factory.serial) || r.device.mac || 'manette').replace(/[^A-Za-z0-9]/g, '') + '-' + r.date.slice(0, 19).replace(/[:T]/g, '-') + '.json';
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
+  // Plain text summary for a sale listing, a message or a forum post
+  function summaryText() {
+    const r = buildReport(), d = r.device, f = r.factory || {}, u = r.usage;
+    const L = [];
+    const line = (k, v) => { if (v != null && v !== '') L.push(k + tr(' : ') + v); };
+    L.push((d.model || 'DualSense') + (f.color ? ' – ' + f.color : '') + (r.unit ? ' (' + r.unit + ')' : ''));
+    line(tr('Verdict'), r.verdict);
+    line(tr('Numéro de série'), f.serial);
+    line(tr('Firmware'), d.updateVersion);
+    line(tr('Batterie'), d.battery && ((d.battery.percent != null ? d.battery.percent + ' %, ' : '') + d.battery.state));
+    if (u && !u.partial) {
+      line(tr('Utilisation'), fmtDuration(u.totalActiveTime));
+      line(tr('Charges'), num(u.batteryChargeCount) + tr(', complètes : ') + num(u.fullChargeCount));
+    }
+    const done = tests.filter(t => t.status !== 'pending');
+    if (done.length) L.push('');
+    done.forEach(t => {
+      L.push((t.status === 'pass' ? '✔ ' : t.status === 'fail' ? '✘ ' : '– ') + tr(t.title) + (t.status === 'skip' ? ' (' + tr(STATUS_TXT.skip) + ')' : '') +
+        (t.detail ? tr(' : ') + String(t.detail).replace(/\s+/g, ' ').slice(0, 220) : ''));
+    });
+    if (r.notes) { L.push(''); L.push(r.notes); }
+    L.push('', tr('Contrôlé avec ZerPad le ') + new Date(r.date).toLocaleDateString(I18N.locale) + ' – https://anzher44.github.io/zerpad/');
+    return L.join('\n');
+  }
+  $('btnCopySummary').addEventListener('click', async () => {
+    const txt = summaryText(), b = $('btnCopySummary');
+    try { await navigator.clipboard.writeText(txt); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e2) { /* nothing more to try */ }
+      ta.remove();
+    }
+    b.textContent = tr('Résumé copié');
+    setTimeout(() => { b.textContent = tr('Copier le résumé'); }, 2000);
   });
 
   // One-page A4 report

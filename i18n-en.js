@@ -1,5 +1,8 @@
 // English translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).en = {
+  "Contrôlé avec ZerPad le ": "Checked with ZerPad on ",
+  "Résumé copié": "Summary copied",
+  "Copier le résumé": "Copy summary",
   " : ": ": ",
   " (disposition non standard)": " (non-standard mapping)",
   "Branchez la manette, puis appuyez sur un bouton pour qu'elle apparaisse.": "Plug in the controller, then press a button so it shows up.",
