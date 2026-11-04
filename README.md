@@ -1,8 +1,8 @@
-# ZherPad
+# ZerPad
 
 Free online PS5 controller tester: test, validate and recalibrate a DualSense or DualSense Edge in the browser. Checks stick drift, adaptive triggers, buttons, battery, gyroscope, factory info and usage history, and prints a one-page PDF report.
 
-Live version: https://anzher44.github.io/zherpad/
+Live version: https://anzher44.github.io/zerpad/
 
 It runs entirely in the browser through WebHID. Nothing is installed and nothing is sent over the network.
 The interface is available in French and English (button in the top bar, detected from the browser language by default).

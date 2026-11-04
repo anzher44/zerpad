@@ -1,7 +1,7 @@
 // Interface language. French strings are the keys; i18n-en.js maps them to English.
 (function () {
   'use strict';
-  const KEY = 'zherpad.lang', SUGGEST_KEY = 'zherpad.langSuggest';
+  const KEY = 'zerpad.lang', SUGGEST_KEY = 'zerpad.langSuggest';
   const store = {
     get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* storage unavailable */ } },
@@ -16,7 +16,7 @@
     }
     return 'en';
   }
-  let lang = store.get(KEY);
+  let lang = store.get(KEY) || store.get('zherpad.lang');
   if (lang !== 'fr' && lang !== 'en') lang = browserLang();
 
   // tr('Texte {n}', { n: 3 })

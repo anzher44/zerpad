@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://anzher44.github.io/zherpad/sitemap.xml
+Sitemap: https://anzher44.github.io/zerpad/sitemap.xml

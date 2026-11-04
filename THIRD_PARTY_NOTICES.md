@@ -1,7 +1,7 @@
 # Third-party notices
 
-ZherPad builds on protocol knowledge published by the following MIT-licensed projects.
-ZherPad's code is written independently; the telemetry layout, the factory read commands and
+ZerPad builds on protocol knowledge published by the following MIT-licensed projects.
+ZerPad's code is written independently; the telemetry layout, the factory read commands and
 the stick calibration sequence are adapted from them.
 
 ## daidr/dualsense-tester - https://github.com/daidr/dualsense-tester
@@ -103,5 +103,5 @@ SOFTWARE.
 - mRbRaIn0/DualShock-Controller-Toolkit (MIT): cross-check of thresholds, return-to-center settle time,
   movement detection during the rest test, packet loss limit, rumble refresh on recent firmwares.
 - SekaPsyka/GamepadTester (MIT): button bounce (chatter) detection.
-- remteh-by/dualsense-tester (proprietary, idea only, no code read into ZherPad): before/after report comparison.
+- remteh-by/dualsense-tester (proprietary, idea only, no code read into ZerPad): before/after report comparison.
 - Linux driver `hid-playstation.c`: input/output report format, IMU calibration.

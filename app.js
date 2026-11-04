@@ -1,4 +1,4 @@
-// ZherPad: user interface, live views and validation tests.
+// ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
   const VERSION = '2.3.0';
@@ -256,7 +256,7 @@
 
   function historyLoad() {
     try {
-      const h = JSON.parse(localStorage.getItem('zherpad.history') || localStorage.getItem('dsTester.history') || '[]');
+      const h = JSON.parse(localStorage.getItem('zerpad.history') || localStorage.getItem('zherpad.history') || localStorage.getItem('dsTester.history') || '[]');
       return Array.isArray(h) ? h : [];
     } catch (e) { return []; }
   }
@@ -1074,7 +1074,7 @@
     const v = computeVerdict();
     const i = ds.info;
     return {
-      tool: 'ZherPad', toolVersion: VERSION,
+      tool: 'ZerPad', toolVersion: VERSION,
       date: new Date().toISOString(),
       unit: $('unitLabel').value, notes: $('unitNotes').value,
       verdict: v.label, verdictDetail: v.detail,
@@ -1100,7 +1100,7 @@
     try {
       const h = historyLoad();
       h.unshift({ date: r.date, unit: r.unit, mac: r.device.mac, serial: r.factory && r.factory.serial || null, verdict: r.verdict, model: r.device.model });
-      localStorage.setItem('zherpad.history', JSON.stringify(h.slice(0, 100)));
+      localStorage.setItem('zerpad.history', JSON.stringify(h.slice(0, 100)));
     } catch (e) { /* storage unavailable */ }
     renderHistory();
   }
@@ -1161,7 +1161,7 @@
     if (!file) return;
     try {
       const r = JSON.parse(await file.text());
-      if (!r || !Array.isArray(r.tests)) throw new Error(tr('ce fichier n\'est pas un rapport ZherPad'));
+      if (!r || !Array.isArray(r.tests)) throw new Error(tr('ce fichier n\'est pas un rapport ZerPad'));
       compareWith = r;
       renderCompare(r);
     } catch (err) { alert(tr('Rapport illisible : ') + err.message); }
@@ -1172,7 +1172,7 @@
     const blob = new Blob([JSON.stringify(r, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'zherpad-' + ((r.factory && r.factory.serial) || r.device.mac || 'manette').replace(/[^A-Za-z0-9]/g, '') + '-' + r.date.slice(0, 19).replace(/[:T]/g, '-') + '.json';
+    a.download = 'zerpad-' + ((r.factory && r.factory.serial) || r.device.mac || 'manette').replace(/[^A-Za-z0-9]/g, '') + '-' + r.date.slice(0, 19).replace(/[:T]/g, '-') + '.json';
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
@@ -1182,7 +1182,7 @@
     'confirmation de l\'opérateur pour les vibrations, les gâchettes adaptatives et l\'éclairage. Il fournit une information ' +
     'minimale sur le bon fonctionnement constaté ce jour-là et ne remplace pas une expertise matérielle complète : il ne permet pas ' +
     'd\'évaluer l\'usure future, l\'état interne des composants ni l\'autonomie réelle de la batterie. Les seuils utilisés et leurs ' +
-    'sources sont publiés sur github.com/anzher44/zherpad.';
+    'sources sont publiés sur github.com/anzher44/zerpad.';
   $('btnPrint').addEventListener('click', () => {
     const r = buildReport(); saveHistory(r);
     const d = r.device, f = r.factory || {}, u = r.usage, v = computeVerdict();
@@ -1207,7 +1207,7 @@
       '</td><td class="st">' + tr(STATUS_TXT[t.status]) + '</td><td class="dt">' + esc(t.detail || '') + '</td></tr>').join('');
     const passed = r.tests.filter(t => t.status === 'pass').length;
     $('printReport').innerHTML =
-      '<header class="rp-head"><div class="rp-brand"><img src="icon.svg" alt=""><div><b>ZherPad</b><span>' + tr('Rapport de contrôle de manette') + '</span></div></div>' +
+      '<header class="rp-head"><div class="rp-brand"><img src="icon.svg" alt=""><div><b>ZerPad</b><span>' + tr('Rapport de contrôle de manette') + '</span></div></div>' +
       '<div class="rp-meta">' + tr('Rapport n°') + ' <b>' + rid + '</b><br>' + new Date(r.date).toLocaleString() + (r.unit ? '<br>' + esc(r.unit) : '') + '</div></header>' +
       '<section class="rp-top"><img class="rp-pad" id="rpPad" src="' + padImage(f.colorCode) + '" alt="">' +
       '<div class="rp-verdict ' + v.key + '"><span>' + tr('Résultat') + '</span><strong>' + esc(v.label) + '</strong><p>' + esc(v.detail) + '</p>' +
@@ -1217,7 +1217,7 @@
       '<h2>' + tr('Résultats des tests') + '</h2><table class="rp-tests"><thead><tr><th class="n">#</th><th>' + tr('Test') + '</th><th>' + tr('Résultat') + '</th><th>' + tr('Mesure') + '</th></tr></thead><tbody>' + tests + '</tbody></table>' +
       (r.notes ? '<p class="rp-notes"><b>' + tr('Notes') + ' :</b> ' + esc(r.notes) + '</p>' : '') +
       '<section class="rp-scope"><h2>' + tr('Portée du contrôle') + '</h2><p>' + tr(REPORT_SCOPE) + '</p></section>' +
-      '<p class="rp-foot">' + tr('Mesures automatiques ZherPad v') + VERSION + '. ' + tr('Seuils et sources : github.com/anzher44/zherpad') + '</p>';
+      '<p class="rp-foot">' + tr('Mesures automatiques ZerPad v') + VERSION + '. ' + tr('Seuils et sources : github.com/anzher44/zerpad') + '</p>';
     const img = $('rpPad');
     const go = () => window.print();
     if (img.complete) go(); else { img.onload = go; img.onerror = go; }
