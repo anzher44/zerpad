@@ -53,6 +53,7 @@
   </div>
 </header>
 
+<main>
 <div id="unsupported" class="banner warn" hidden data-i18n-html>
   Votre navigateur ne gère pas <b>WebHID</b>. Ouvrez cette page avec <b>Google Chrome</b> ou <b>Microsoft Edge</b> (ordinateur).
 </div>
@@ -87,21 +88,21 @@
 </div>
 
 <nav class="tabs" role="tablist">
-  <button class="tab active" data-tab="info">Manette</button>
-  <button class="tab" data-tab="val">Contrôle</button>
-  <button class="tab" data-tab="live">Entrées</button>
-  <button class="tab" data-tab="out">Sorties</button>
-  <button class="tab" data-tab="cal">Calibration</button>
-  <button class="tab tab-aside" data-tab="raw">Données brutes</button>
+  <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-info" data-tab="info">Manette</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-val" data-tab="val">Contrôle</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-live" data-tab="live">Entrées</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-out" data-tab="out">Sorties</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="tab-cal" data-tab="cal">Calibration</button>
+  <button class="tab tab-aside" role="tab" aria-selected="false" aria-controls="tab-raw" data-tab="raw">Données brutes</button>
 </nav>
 
-<main>
-<!-- ============ INFOS ============ -->
-<section id="tab-info" class="panel active">
+<div class="workspace">
+<!-- Infos -->
+<section role="tabpanel" id="tab-info" class="panel active">
   <div class="card hero">
     <img id="padImg" class="hero-img idle" src="assets/controllers/00.webp" alt="" width="440" height="245">
     <div class="hero-info">
-      <div id="h-model" class="hero-model">Aucune manette connectée</div>
+      <h1 id="h-model" class="hero-model">Aucune manette connectée</h1>
       <div id="h-color" class="hero-color"></div>
       <dl id="h-facts" class="hero-facts"></dl>
       <button id="btnStartCheck" class="primary">Démarrer le contrôle</button>
@@ -151,8 +152,8 @@
   </div>
 </section>
 
-<!-- ============ INPUTS ============ -->
-<section id="tab-live" class="panel">
+<!-- Inputs -->
+<section role="tabpanel" id="tab-live" class="panel">
   <div class="grid3">
     <div class="card">
       <h2>Boutons</h2>
@@ -191,8 +192,8 @@
   </div>
 </section>
 
-<!-- ============ OUTPUTS ============ -->
-<section id="tab-out" class="panel">
+<!-- Outputs -->
+<section role="tabpanel" id="tab-out" class="panel">
   <div class="grid3">
     <div class="card">
       <h2>Vibrations</h2>
@@ -252,8 +253,8 @@
   </div>
 </section>
 
-<!-- ============ VALIDATION ============ -->
-<section id="tab-val" class="panel">
+<!-- Validation -->
+<section role="tabpanel" id="tab-val" class="panel">
   <div class="card verdict-card">
     <div>
       <h2>Verdict</h2>
@@ -285,8 +286,8 @@
   </div>
 </section>
 
-<!-- ============ CALIBRATION ============ -->
-<section id="tab-cal" class="panel">
+<!-- Calibration -->
+<section role="tabpanel" id="tab-cal" class="panel">
   <div class="card">
     <h2>Recalibration des sticks</h2>
     <p class="small" data-i18n-html>Corrige un <b>centre décalé</b> (dérive d'origine électrique) et une <b>amplitude incomplète</b>, comme le fait l'usine.
@@ -326,21 +327,22 @@
   </div>
 </section>
 
-<!-- ============ RAW ============ -->
-<section id="tab-raw" class="panel">
+<!-- Raw -->
+<section role="tabpanel" id="tab-raw" class="panel">
   <div class="card">
     <h2>Dernier rapport d'entrée</h2>
-    <pre id="rawInput" class="hex">-</pre>
+    <pre id="rawInput" class="hex" tabindex="0">-</pre>
   </div>
   <div class="card">
     <h2>Rapports de fonctionnalité (feature reports)</h2>
-    <pre id="rawFeature" class="hex">-</pre>
+    <pre id="rawFeature" class="hex" tabindex="0">-</pre>
   </div>
   <div class="card">
     <h2>Journal</h2>
     <pre id="log" class="hex log"></pre>
   </div>
 </section>
+</div>
 </main>
 
 <!-- Printable report -->

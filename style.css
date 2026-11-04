@@ -35,8 +35,8 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -app
 .small { font-size: 12px; color: var(--muted); }
 h1, h2, h3 { font-weight: 600; margin: 0; }
 h3 { font-size: 14px; margin: 16px 0 8px; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
+a { color: var(--accent); text-decoration: underline; text-underline-offset: .2em; }
+a:hover { text-decoration-thickness: 2px; }
 
 /* Buttons */
 button { font: inherit; font-size: 14px; font-weight: 500; line-height: 20px; padding: 5px 16px; border-radius: 6px; cursor: pointer;
@@ -77,7 +77,7 @@ input[type=range], input[type=checkbox] { accent-color: var(--accent); }
 .lang-offer span { flex: 1; min-width: 200px; }
 
 /* Welcome screen, until a controller is connected */
-body:not(.connected) .tabs, body:not(.connected) main { display: none; }
+body:not(.connected) .tabs, body:not(.connected) .workspace { display: none; }
 body.connected #welcome { display: none; }
 #welcome { max-width: 1012px; margin: 0 auto; padding: 48px 24px 32px; }
 .wl-main { display: flex; align-items: center; gap: 48px; }
@@ -103,7 +103,7 @@ body.connected #welcome { display: none; }
 .tab.active { font-weight: 600; border-bottom-color: var(--tab-line); }
 .tab-aside { margin-left: auto; color: var(--muted); }
 
-main { padding: 24px; max-width: 1280px; margin: 0 auto; }
+.workspace { padding: 24px; max-width: 1280px; margin: 0 auto; }
 .panel { display: none; }
 .panel.active { display: block; }
 
@@ -112,8 +112,8 @@ main { padding: 24px; max-width: 1280px; margin: 0 auto; }
 .card > h2:first-child { font-size: 14px; margin: -16px -16px 16px; padding: 12px 16px; background: var(--panel2); border-bottom: 1px solid var(--line); border-radius: 6px 6px 0 0; }
 .card > h2:first-child .small { font-weight: 400; }
 .grid2, .grid3 { display: grid; gap: 16px; margin-bottom: 16px; }
-.grid2 { grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }
-.grid3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid2 { grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); }
+.grid3 { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); }
 .grid2 > .card, .grid3 > .card { margin-bottom: 0; }
 
 table.kv { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -132,9 +132,9 @@ table.kv.small th, table.kv.small td { padding: 3px 12px 3px 0; font-size: 12px;
 .hero-img { width: 320px; max-width: 40%; height: auto; flex: none; transition: opacity .2s, filter .2s; }
 .hero-img.idle { opacity: .35; filter: grayscale(1); }
 .hero-info { min-width: 0; flex: 1; }
-.hero-model { font-size: 24px; font-weight: 600; line-height: 1.25; }
+.hero-model { font-size: 24px; font-weight: 600; line-height: 1.25; margin: 0; }
 .hero-color { color: var(--muted); margin: 2px 0 16px; }
-.hero-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px 24px; margin: 0; }
+.hero-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(170px, 100%), 1fr)); gap: 12px 24px; margin: 0; }
 .hero-facts dt { font-size: 12px; color: var(--muted); }
 .hero-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 #btnStartCheck { margin-top: 20px; }
@@ -272,7 +272,7 @@ pre.log { max-height: 260px; overflow-y: auto; white-space: pre-wrap; }
   .hero-img { max-width: 100%; width: 280px; }
 }
 @media (max-width: 560px) {
-  .top, .tabs, main { padding-left: 16px; padding-right: 16px; }
+  .top, .tabs, .workspace { padding-left: 16px; padding-right: 16px; }
   .banner { margin-left: 16px; margin-right: 16px; }
   .btngrid { grid-template-columns: repeat(3, 1fr); }
   #welcome { padding: 32px 16px; }

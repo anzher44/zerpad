@@ -10,7 +10,11 @@
 
   // Tabs
   function setTab(name) {
-    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name));
+    document.querySelectorAll('.tab').forEach(x => {
+      const on = x.dataset.tab === name;
+      x.classList.toggle('active', on);
+      x.setAttribute('aria-selected', on);
+    });
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   }
   document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
@@ -481,7 +485,7 @@
   $('muteLed').addEventListener('change', e => ds.update({ muteLed: +e.target.value }));
   const pl = $('playerLeds');
   for (let i = 0; i < 5; i++) {
-    const c = document.createElement('input'); c.type = 'checkbox'; c.title = 'LED ' + (i + 1);
+    const c = document.createElement('input'); c.type = 'checkbox'; c.title = 'LED ' + (i + 1); c.setAttribute('aria-label', c.title);
     c.addEventListener('change', () => {
       let m = 0; pl.querySelectorAll('input').forEach((x, j) => { if (x.checked) m |= 1 << j; });
       ds.update({ playerLeds: m });
