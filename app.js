@@ -1,7 +1,7 @@
 // ZerPad: user interface, live views and validation tests.
 (function () {
   'use strict';
-  const VERSION = '2.6.0';
+  const VERSION = '2.6.1';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -87,6 +87,8 @@
   ds.addEventListener('transport', () => { renderInfo(); $('btnPowerOff').hidden = ds.transport !== 'bt'; });
   ds.addEventListener('info', () => { renderInfo(); renderFeatures(); });
   ds.addEventListener('closed', () => {
+    stopAllRunning(); renderTests();
+    if (micStream) toggleMic();
     $('connStatus').textContent = tr('Non connectée');
     $('connStatus').className = 'pill off';
     $('btnConnect').hidden = false;
@@ -662,12 +664,20 @@
       id, title, instructions, kind: 'manual',
       async start(t) {
         t.status = 'running'; t.detail = tr('En cours… puis confirmez ci-dessous.'); renderTests();
+        if (opts.usbOnly && ds.transport !== 'usb') return skipBt(t);
         let fail = null;
         try { fail = await action(t); } catch (e) { fail = tr('Erreur : ') + e.message; }
         if (typeof fail === 'string') { t.detail = fail; return finish(t, false); }
         t.awaitingConfirm = true; renderTests();
       },
     }, opts));
+  }
+
+  // Audio only exists over USB: over Bluetooth these tests are skipped, not failed
+  function skipBt(t) {
+    t.status = 'skip';
+    t.detail = tr('Connexion Bluetooth : l\'audio de la manette n\'existe qu\'en USB.');
+    renderTests();
   }
 
   function buildTests() {
@@ -1013,14 +1023,13 @@
       manual('muteLed', 'LED du bouton micro', 'Cliquez « Lancer » : la LED orange du bouton micro s\'allume, puis clignote.',
         async () => { ds.update({ muteLed: 1 }); await sleep(1500); ds.update({ muteLed: 2 }); await sleep(2500); ds.update({ muteLed: 0 }); }),
       manual('speaker', 'Haut-parleur interne (USB)', 'USB uniquement. Cliquez « Lancer » : la manette joue elle-même un son de test sur son haut-parleur pendant 2 s, deux fois.',
-        async () => {
-          if (ds.transport !== 'usb') return tr('Connexion Bluetooth : l\'audio de la manette n\'existe qu\'en USB.');
-          await padTone('speaker', 2000); await sleep(400); await padTone('speaker', 2000);
-        }, { required: false }),
+        async () => { await padTone('speaker', 2000); await sleep(400); await padTone('speaker', 2000); },
+        { required: false, usbOnly: true }),
       T({
         id: 'mic', title: 'Microphone interne (USB)', required: false, kind: 'auto',
         instructions: 'USB uniquement. Cliquez « Lancer », puis parlez ou soufflez près du micro (petit trou à côté du port de charge). Le niveau doit monter.',
         async start(t) {
+          if (ds.transport !== 'usb') return skipBt(t);
           t.status = 'running'; t.detail = tr('Recherche du micro…'); renderTests();
           const r = await scanAudio();
           if (!r.in) { t.detail = tr('Micro de la manette introuvable. ') + audioDiag(r, r.inputs, tr('Micros')); return finish(t, false); }

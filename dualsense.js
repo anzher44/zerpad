@@ -177,6 +177,9 @@
       if (this.device) this.device.removeEventListener('inputreport', this._onInput);
       this.device = null;
       this._lastSeq = null;
+      // A controller that comes back must not start rumbling or resisting with the old values
+      Object.assign(this.out, { motorL: 0, motorR: 0, trigL: TriggerFx.off(), trigR: TriggerFx.off(), audioPath: null });
+      this._rumbleStop = 0;
       this.state = null;
       this.factory = null;
       this.telemetry = null;
@@ -258,7 +261,7 @@
           if (r.reportId === id && r.items && r.items[0] && r.items[0].reportCount) return r.items[0].reportCount;
         }
       }
-      return 63;
+      return { 0x08: 46 }[id] || 63;
     }
 
     async _sendFeature(id, bytes) {
@@ -282,7 +285,8 @@
         await this._sendFeature(0x80, [devId, actId, ...params]);
         const pages = [];
         const t0 = performance.now();
-        while (pages.length < maxPages && performance.now() - t0 < 800) {
+        const limit = 800 + 250 * (maxPages - 1) + (this.transport === 'bt' ? 400 : 0);
+        while (pages.length < maxPages && performance.now() - t0 < limit) {
           let r = await this._getFeature(0x81);
           const match = r[1] === devId && r[2] === actId;
           if (match && (r[3] === 2 || r[3] === 3)) {

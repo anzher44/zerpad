@@ -74,6 +74,7 @@
     const t0 = performance.now();
     let stableSince = null;
     while (performance.now() - t0 < timeout) {
+      if (!ds.device) throw new Error(tr('Manette déconnectée.'));
       const st = ds.state;
       if (st) {
         const ok = Math.hypot(norm(st.lx), norm(st.ly)) < 0.15 && Math.hypot(norm(st.rx), norm(st.ry)) < 0.15;
@@ -117,9 +118,11 @@
     renderButtons();
   }
   // Promise resolved when the user clicks the given button
+  let abortStep = null;
   function waitClick(label, cls = 'primary') {
-    return new Promise(res => actions([[label, cls, () => res()]]));
+    return new Promise((res, rej) => { abortStep = rej; actions([[label, cls, () => { abortStep = null; res(); }]]); });
   }
+  ds.addEventListener('closed', () => { if (abortStep) { const a = abortStep; abortStep = null; a(new Error(tr('Manette déconnectée.'))); } });
 
   // Center calibration (4 corners)
   const CORNERS = ['en haut à gauche', 'en haut à droite', 'en bas à gauche', 'en bas à droite'];
@@ -141,11 +144,11 @@
           setStep(() => tr('<b class="big">Étape ') + (i + 1) + tr('/4</b><span class="txt-bad">Les sticks ne sont pas revenus au centre.</span> Relâchez-les complètement puis cliquez « Continuer ».'));
           i--; continue;
         }
+        await sleep(150);
         await ds.calibCenterSample();
       }
       setStep(() => tr('<b class="big">Enregistrement…</b>Ne touchez pas les sticks.'));
-      await sleep(200);
-      await ds.calibCenterSample();
+      await sleep(700);
       await ds.calibCenterEnd();
       await sleep(300);
       after = await measure(); renderCompare();
@@ -176,12 +179,13 @@
       unsaved = true;
       rangeBins = { L: new Array(BINS).fill(0), R: new Array(BINS).fill(0) };
       let done = false;
-      const doneP = new Promise(res => {
+      const doneP = new Promise((res, rej) => {
+        abortStep = err => { done = true; rej(err); };
         const tick = () => {
           if (done) return;
           const cl = Math.round(coverage(rangeBins.L) * 100), cr = Math.round(coverage(rangeBins.R) * 100);
           setStep(() => tr('<b class="big">Amplitude</b>Faites tourner <b>les deux sticks en butée</b>, lentement, plusieurs tours complets.<br>Couverture : gauche ') + cl + tr(' %, droit ') + cr + ' %');
-          actions([[tr('Terminer'), 'primary', () => { done = true; res(); }, cl < 95 || cr < 95]]);
+          actions([[tr('Terminer'), 'primary', () => { done = true; abortStep = null; res(); }, cl < 95 || cr < 95]]);
           setTimeout(tick, 250);
         };
         tick();
