@@ -220,63 +220,56 @@
   <div class="grid3">
     <div class="card">
       <h2>Vibrations</h2>
-      <label class="row">Moteur gauche (fort) <input type="range" id="motL" min="0" max="255" value="0"><span id="motLv" class="mono">0</span></label>
-      <label class="row">Moteur droit (léger) <input type="range" id="motR" min="0" max="255" value="0"><span id="motRv" class="mono">0</span></label>
-      <button id="btnMotStop" class="ghost">Arrêter</button>
+      <p class="small">Choisissez un réglage : la manette vibre jusqu'à « Arrêter ».</p>
+      <div class="seg grid-btns">
+        <button data-rumble="255,255">Forte, les deux moteurs</button>
+        <button data-rumble="70,110">Légère, les deux moteurs</button>
+        <button data-rumble="255,0">Gauche seulement</button>
+        <button data-rumble="0,255">Droite seulement</button>
+        <button data-rumble="0,0" class="stop">Arrêter</button>
+      </div>
     </div>
     <div class="card">
       <h2>Barre lumineuse &amp; LED</h2>
-      <label class="row">Couleur <input type="color" id="lbColor" value="#0040ff"></label>
-      <label class="row">Luminosité LED joueur
-        <select id="ledBright"><option value="0">Forte</option><option value="1">Moyenne</option><option value="2">Faible</option></select>
-      </label>
-      <div class="row">LED joueur
-        <span id="playerLeds" class="leds"></span>
-      </div>
-      <label class="row">LED micro
-        <select id="muteLed"><option value="0">Éteinte</option><option value="1">Allumée</option><option value="2">Clignotante</option></select>
-      </label>
+      <h3>Barre lumineuse</h3>
+      <div class="seg chips"><button class="chip" data-color="255,0,0" style="--c:#ff2a2a" title="Rouge"></button><button class="chip" data-color="255,90,0" style="--c:#ff6a00" title="Orange"></button><button class="chip" data-color="255,200,0" style="--c:#ffd000" title="Jaune"></button><button class="chip" data-color="0,255,40" style="--c:#20e050" title="Vert"></button><button class="chip" data-color="0,220,255" style="--c:#16d6ff" title="Cyan"></button><button class="chip" data-color="0,40,255" style="--c:#2a55ff" title="Bleu"></button><button class="chip" data-color="140,0,255" style="--c:#9b30ff" title="Violet"></button><button class="chip" data-color="255,0,140" style="--c:#ff2d9a" title="Rose"></button><button class="chip" data-color="255,255,255" style="--c:#ffffff" title="Blanc"></button><button class="chip off" data-color="0,0,0" title="Éteinte"></button><button class="cycle" data-color="cycle">Cycle de couleurs</button></div>
+      <h3>LED joueur</h3>
+      <div class="seg"><button data-pled="0">Éteintes</button><button data-pled="4">1</button><button data-pled="10">2</button><button data-pled="21">3</button><button data-pled="27">4</button><button data-pled="31">Toutes</button></div>
+      <h3>Luminosité LED joueur</h3>
+      <div class="seg"><button data-bright="0">Forte</button><button data-bright="1">Moyenne</button><button data-bright="2">Faible</button></div>
+      <h3>LED micro</h3>
+      <div class="seg"><button data-mute="0">Éteinte</button><button data-mute="1">Allumée</button><button data-mute="2">Clignotante</button></div>
     </div>
     <div class="card">
       <h2>Gâchettes adaptatives</h2>
-      <div class="trigfx">
-        <label>Gâchette <select id="fxSide"><option value="L">L2</option><option value="R">R2</option><option value="B">Les deux</option></select></label>
-        <label>Effet
-          <select id="fxMode">
-            <option value="off">Aucun</option>
-            <option value="feedback">Résistance (depuis une position)</option>
-            <option value="weapon">Arme (point dur)</option>
-            <option value="vibration">Vibration</option>
-            <option value="rigid">Rigide maximum</option>
-            <option value="bow">Arc (tension puis relâche)</option>
-            <option value="galloping">Galop</option>
-            <option value="machine">Machine (alternance)</option>
-          </select>
-        </label>
-        <label class="row">Position début <input type="range" id="fxStart" min="0" max="9" value="2"><span id="fxStartV" class="mono">2</span></label>
-        <label class="row">Position fin (arme) <input type="range" id="fxEnd" min="1" max="8" value="6"><span id="fxEndV" class="mono">6</span></label>
-        <label class="row">Force / amplitude <input type="range" id="fxForce" min="1" max="8" value="8"><span id="fxForceV" class="mono">8</span></label>
-        <label class="row">Fréquence vibration (Hz) <input type="range" id="fxFreq" min="1" max="255" value="30"><span id="fxFreqV" class="mono">30</span></label>
-        <button id="btnFxApply" class="primary">Appliquer</button>
+      <p class="small">Choisissez la gâchette puis un effet, puis appuyez sur la gâchette pour le sentir.</p>
+      <h3>Gâchette</h3>
+      <div class="seg"><button data-side="L">L2</button><button data-side="R">R2</button><button data-side="B" class="sel" aria-pressed="true">Les deux</button></div>
+      <h3>Effet</h3>
+      <div class="seg grid-btns">
+        <button data-fx="soft">Résistance légère</button>
+        <button data-fx="hard">Résistance forte</button>
+        <button data-fx="weapon">Point dur (arme)</button>
+        <button data-fx="vibration">Vibration</button>
+        <button data-fx="bow">Arc (tension puis relâche)</button>
+        <button data-fx="galloping">Galop</button>
+        <button data-fx="machine">Machine (alternance)</button>
+        <button data-fx="rigid">Rigide maximum</button>
+        <button data-fx="off" class="stop">Aucun</button>
       </div>
     </div>
   </div>
   <div class="card">
     <h2>Audio (USB uniquement)</h2>
-    <p class="small">Le haut-parleur et le micro de la manette apparaissent comme périphériques audio Windows/macOS/Linux. Le navigateur demandera l'accès au micro pour lister les noms.</p>
-    <div class="row wrap">
-      <button id="btnAudioScan" class="ghost">Détecter l'audio de la manette</button>
-      <span id="audioStatus" class="small">-</span>
+    <div class="seg">
+      <button id="btnToneSpk">Son de test : haut-parleur</button>
+      <button id="btnToneHp">Son de test : casque</button>
     </div>
+    <p class="small">Généré par la manette elle-même, sans réglage audio.</p>
     <div class="row wrap">
-      <button id="btnToneSpk" class="ghost">Son de test : haut-parleur</button>
-      <button id="btnToneHp" class="ghost">Son de test : casque</button>
-      <span class="small">Généré par la manette elle-même, sans réglage audio.</span>
-    </div>
-    <div class="row wrap">
-      <button id="btnSpeaker" class="ghost" disabled>Bip haut-parleur manette</button>
-      <button id="btnMic" class="ghost" disabled>Écouter le micro</button>
+      <button id="btnMic">Écouter le micro</button>
       <div class="bar micbar"><div id="micLevel"></div></div>
+      <span id="audioStatus" class="small"></span>
     </div>
   </div>
 </section>

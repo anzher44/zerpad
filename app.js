@@ -494,52 +494,67 @@
       (st.buttons.touchpad ? ', CLIC' : '');
   }
 
-  // Outputs
-  const motL = $('motL'), motR = $('motR');
-  motL.addEventListener('input', () => { $('motLv').textContent = motL.value; ds.update({ motorL: +motL.value }); });
-  motR.addEventListener('input', () => { $('motRv').textContent = motR.value; ds.update({ motorR: +motR.value }); });
-  $('btnMotStop').addEventListener('click', () => {
-    motL.value = motR.value = 0; $('motLv').textContent = $('motRv').textContent = '0';
-    ds.update({ motorL: 0, motorR: 0 });
-  });
-  $('lbColor').addEventListener('input', e => {
-    const v = e.target.value; ds.update({ r: parseInt(v.slice(1, 3), 16), g: parseInt(v.slice(3, 5), 16), b: parseInt(v.slice(5, 7), 16) });
-  });
-  $('ledBright').addEventListener('change', e => ds.update({ ledBrightness: +e.target.value }));
-  $('muteLed').addEventListener('change', e => ds.update({ muteLed: +e.target.value }));
-  const pl = $('playerLeds');
-  for (let i = 0; i < 5; i++) {
-    const c = document.createElement('input'); c.type = 'checkbox'; c.title = 'LED ' + (i + 1); c.setAttribute('aria-label', c.title);
-    c.addEventListener('change', () => {
-      let m = 0; pl.querySelectorAll('input').forEach((x, j) => { if (x.checked) m |= 1 << j; });
-      ds.update({ playerLeds: m });
+  // Outputs: ready-made settings, one click each
+  const FX = {
+    off: () => TriggerFx.off(),
+    soft: () => TriggerFx.feedback(2, 3),
+    hard: () => TriggerFx.feedback(1, 8),
+    weapon: () => TriggerFx.weapon(3, 6, 8),
+    vibration: () => TriggerFx.vibration(1, 8, 25),
+    bow: () => TriggerFx.bow(2, 6, 7, 7),
+    galloping: () => TriggerFx.galloping(2, 8, 4),
+    machine: () => TriggerFx.machine(1, 9, 6, 8),
+    rigid: () => TriggerFx.rigid(),
+  };
+  let fxSide = 'B', colorCycle = 0;
+  const stopCycle = () => { clearInterval(colorCycle); colorCycle = 0; };
+  // Marks the clicked button as the current choice of its group
+  function choose(btn) {
+    btn.closest('.seg').querySelectorAll('button').forEach(x => {
+      x.classList.toggle('sel', x === btn);
+      x.setAttribute('aria-pressed', x === btn);
     });
-    pl.appendChild(c);
   }
-  ['fxStart', 'fxEnd', 'fxForce', 'fxFreq'].forEach(id => $(id).addEventListener('input', () => { $(id + 'V').textContent = $(id).value; }));
-  $('btnFxApply').addEventListener('click', () => {
-    const mode = $('fxMode').value, s = +$('fxStart').value, e = +$('fxEnd').value, f = +$('fxForce').value, hz = +$('fxFreq').value;
-    let fx;
-    switch (mode) {
-      case 'feedback': fx = TriggerFx.feedback(s, f); break;
-      case 'weapon': fx = TriggerFx.weapon(s, e, f); break;
-      case 'vibration': fx = TriggerFx.vibration(s, f, hz); break;
-      case 'rigid': fx = TriggerFx.rigid(); break;
-      case 'bow': fx = TriggerFx.bow(s, e, f, f); break;
-      case 'galloping': fx = TriggerFx.galloping(s, e, hz); break;
-      case 'machine': fx = TriggerFx.machine(s, e, f, hz); break;
-      default: fx = TriggerFx.off();
+  $('tab-out').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || !b.closest('.seg')) return;
+    const d = b.dataset;
+    if (!ds.device) return;
+    if (d.rumble) {
+      const [l, r] = d.rumble.split(',').map(Number);
+      ds.update({ motorL: l, motorR: r });
+      if (l || r) choose(b); else b.closest('.seg').querySelectorAll('button').forEach(x => { x.classList.remove('sel'); x.setAttribute('aria-pressed', false); });
+    } else if (d.color) {
+      stopCycle();
+      if (d.color === 'cycle') {
+        let h = 0;
+        colorCycle = setInterval(() => {
+          h = (h + 4) % 360;
+          const f = n => { const k = (n + h / 60) % 6; return Math.round(255 * (1 - Math.max(0, Math.min(k, 4 - k, 1)))); };
+          ds.update({ r: f(5), g: f(3), b: f(1) });
+        }, 50);
+      } else {
+        const [r, g, bl] = d.color.split(',').map(Number);
+        ds.update({ r, g, b: bl });
+      }
+      choose(b);
+    } else if (d.pled != null) { ds.update({ playerLeds: +d.pled }); choose(b); }
+    else if (d.bright != null) { ds.update({ ledBrightness: +d.bright }); choose(b); }
+    else if (d.mute != null) { ds.update({ muteLed: +d.mute }); choose(b); }
+    else if (d.side) { fxSide = d.side; choose(b); }
+    else if (d.fx) {
+      const fx = FX[d.fx](), patch = {};
+      if (fxSide !== 'R') patch.trigL = fx;
+      if (fxSide !== 'L') patch.trigR = fx;
+      ds.update(patch);
+      choose(b);
     }
-    const side = $('fxSide').value, patch = {};
-    if (side !== 'R') patch.trigL = fx;
-    if (side !== 'L') patch.trigR = fx;
-    ds.update(patch);
   });
+  ds.addEventListener('closed', stopCycle);
 
   // Controller audio (USB)
   let audioOut = null, audioIn = null, micStream = null, micRAF = 0;
   const isPadAudio = d => /wireless controller|dualsense|054c:0ce6|054c:0df2/i.test(d.label);
-  $('btnAudioScan').addEventListener('click', scanAudio);
   async function scanAudio() {
     try {
       // Microphone permission is required to get device names
@@ -548,9 +563,7 @@
       const devs = await navigator.mediaDevices.enumerateDevices();
       audioOut = devs.find(d => d.kind === 'audiooutput' && isPadAudio(d)) || null;
       audioIn = devs.find(d => d.kind === 'audioinput' && isPadAudio(d)) || null;
-      $('audioStatus').textContent = tr('Haut-parleur : ') + (audioOut ? audioOut.label : tr('non trouvé')) + tr(', Micro : ') + (audioIn ? audioIn.label : tr('non trouvé'));
-      $('btnSpeaker').disabled = !audioOut;
-      $('btnMic').disabled = !audioIn;
+      $('audioStatus').textContent = audioIn ? audioIn.label : '';
       const names = kind => devs.filter(d => d.kind === kind).map(d => d.label || tr('(sans nom)'));
       return { out: !!audioOut, in: !!audioIn, outputs: names('audiooutput'), inputs: names('audioinput') };
     } catch (e) {
@@ -558,24 +571,6 @@
       return { out: false, in: false, error: e.name + ' : ' + e.message };
     }
   }
-  async function beepPad() {
-    if (!audioOut) return false;
-    const ctx = new AudioContext();
-    // Force the controller to play on its internal speaker (output path 3), as dualsensectl does
-    ds.update({ audioPath: 3, speakerVol: 0x64 });
-    await sleep(50);
-    try {
-      if (ctx.setSinkId) await ctx.setSinkId(audioOut.deviceId);
-      else { $('audioStatus').textContent = tr('Ce navigateur ne permet pas de choisir la sortie audio.'); return false; }
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.frequency.value = 880; g.gain.value = 0.4;
-      o.connect(g).connect(ctx.destination);
-      o.start(); o.frequency.setValueAtTime(660, ctx.currentTime + 0.4); o.stop(ctx.currentTime + 1.2);
-      await new Promise(r => setTimeout(r, 1300));
-      return true;
-    } finally { ctx.close(); ds.out.audioPath = null; }
-  }
-  $('btnSpeaker').addEventListener('click', beepPad);
   // Test tone generated by the controller itself: no audio device or permission needed
   async function padTone(target, ms = 1500) {
     await ds.toneOn(target);
@@ -608,7 +603,13 @@
     };
     loop();
   }
-  $('btnMic').addEventListener('click', () => toggleMic().catch(e => log(tr('Micro : ') + e.message)));
+  // The controller mic is looked up on the first click (the browser asks for microphone access)
+  $('btnMic').addEventListener('click', async () => {
+    try {
+      if (!audioIn && !micStream) { const r = await scanAudio(); if (!r.in) { $('audioStatus').textContent = tr('Micro de la manette introuvable. ') + audioDiag(r, r.inputs, tr('Micros')); return; } }
+      await toggleMic();
+    } catch (e) { log(tr('Micro : ') + e.message); }
+  });
 
   // Validation tests
   let tests = [];
