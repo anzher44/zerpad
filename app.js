@@ -3,7 +3,7 @@
   'use strict';
   // Numbers in the reader's format (3,2 in French, 3.2 in English)
   const nf = (v, d) => Number(v).toLocaleString(I18N.locale, d == null ? { maximumFractionDigits: 2 } : { minimumFractionDigits: d, maximumFractionDigits: d });
-  const VERSION = '3.0.0';
+  const VERSION = '3.0.1';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -767,7 +767,11 @@
           t.data = { percent: b.pct, state: tr(b.label), raw: '0x' + hex(b.raw), transport: ds.transport, usbData: pl.usbData, usbPower: pl.usbPower };
           let ok = !b.error, note = '';
           if (ds.transport === 'usb') note += tr(', port USB : données ') + yesNo(pl.usbData) + tr(', alimentation ') + yesNo(pl.usbPower);
-          if (ds.transport === 'usb' && b.code === 0x0) { ok = false; note += tr(', branchée en USB mais ne charge pas (câble, port ou circuit de charge ?)'); }
+          // Over USB the charge pauses when the battery is nearly full: only a low battery that does not charge is a fault
+          if (ds.transport === 'usb' && b.code === 0x0) {
+            if (b.pct != null && b.pct >= 85) note += tr(', charge en pause (batterie presque pleine, normal)');
+            else { ok = false; note += tr(', branchée en USB mais ne charge pas (câble, port ou circuit de charge ?)'); }
+          }
           t.detail = (b.pct != null ? b.pct + ' %, ' : '') + tr(b.label) + note;
           finish(t, ok);
         },
@@ -1114,6 +1118,8 @@
 
   // Explains why the controller audio device was not found
   function audioDiag(r, list, what) {
+    // "by system": the operating system blocks the browser, the site setting cannot fix it
+    if (r.error && /system/i.test(r.error)) return tr('Le système bloque le micro pour le navigateur (') + r.error + tr(') : autorisez-le dans les réglages de confidentialité (macOS : Réglages Système > Confidentialité et sécurité > Micro ; Windows : Paramètres > Confidentialité > Microphone), puis relancez le navigateur.');
     if (r.error) return tr('Accès audio refusé (') + r.error + tr(') : autorisez le micro pour ce site (icône à gauche de l\'adresse).');
     if (ds.transport === 'bt') return tr('Connexion Bluetooth : l\'audio de la manette n\'existe qu\'en USB.');
     return what + tr(' vus par le navigateur : ') + (list && list.length ? list.join(' ; ') : tr('aucun')) +
@@ -1173,24 +1179,30 @@
         '<p class="detail mono small"></p><div class="tact"></div>';
       el.querySelector('.detail').textContent = t.detail;
       const act = el.querySelector('.tact');
+      // skipping moves on to the next test, like finishing one
+      const skip = () => {
+        t.status = 'skip'; t.awaitingConfirm = false; touchShowGrid = false; renderTests();
+        if ($('tab-val').classList.contains('active')) setTimeout(goToCurrent, 400);
+      };
       const mk = (label, cls, fn) => { const b = document.createElement('button'); b.textContent = label; b.className = cls; b.addEventListener('click', fn); act.appendChild(b); };
       if (t.status === 'running' && t.awaitingConfirm) {
         mk(tr('Fonctionne'), 'ok', () => { t.detail = tr('Confirmé par l\'opérateur'); finish(t, true); });
         mk(tr('Ne fonctionne pas'), 'bad', () => { t.detail = tr('Signalé défectueux par l\'opérateur'); finish(t, false); });
         mk(tr('Relancer'), 'ghost', () => t.start(t));
+        mk(tr('Passer'), 'ghost', skip);
         const hint = document.createElement('p'); hint.className = 'small kbd-hint';
         hint.textContent = tr('Clavier : O = fonctionne, N = ne fonctionne pas');
         act.appendChild(hint);
       } else if (t.status === 'running') {
         if (t.kind === 'auto' && t.required) mk(tr('Abandonner (échec)'), 'bad', () => { t.detail += tr(' (abandonné)'); finish(t, false); });
-        mk(tr('Passer'), 'ghost', () => { t.status = 'skip'; touchShowGrid = false; renderTests(); });
+        mk(tr('Passer'), 'ghost', skip);
       } else {
         // only the next test to do gets the green button
         mk(t.status === 'pending' ? tr('Lancer') : tr('Relancer'), t.status === 'pending' ? (t === currentTest() ? 'primary' : '') : 'ghost small', () => {
           if (!ds.device) { alert(tr('Connectez d\'abord la manette.')); return; }
           t.detail = ''; t.start(t);
         });
-        if (t.status === 'pending') mk(tr('Passer'), 'ghost', () => { t.status = 'skip'; renderTests(); });
+        if (t.status === 'pending' || (t.status === 'fail' && !t.required)) mk(tr('Passer'), 'ghost', skip);
       }
       box.appendChild(el);
     });

@@ -1,5 +1,8 @@
 // Spanish translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).es = {
+  ", charge en pause (batterie presque pleine, normal)": ", carga en pausa (batería casi llena, normal)",
+  "Le système bloque le micro pour le navigateur (": "El sistema bloquea el micrófono para el navegador (",
+  ") : autorisez-le dans les réglages de confidentialité (macOS : Réglages Système > Confidentialité et sécurité > Micro ; Windows : Paramètres > Confidentialité > Microphone), puis relancez le navigateur.": "): permítelo en los ajustes de privacidad (macOS: Ajustes del Sistema > Privacidad y seguridad > Micrófono; Windows: Configuración > Privacidad > Micrófono) y reinicia el navegador.",
   "DualSense connectée": "DualSense conectado",
   "Manette détectée": "Mando detectado",
   "Clavier et souris": "Teclado y ratón",
