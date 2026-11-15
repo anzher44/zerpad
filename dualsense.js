@@ -422,10 +422,29 @@
     calibRangeBegin() { return this._calibCmd([1, 1, 2], 0x83010201); }
     calibRangeEnd() { return this._calibCmd([2, 1, 2], 0x83010202); }
 
-    /** NVS state: true = locked (normal, changes are temporary), false = unlocked, null = unknown. */
-    async nvsStatus() {
-      const r = await this.testCommand(3, 3);
-      return r ? (r[0] === 1 ? true : r[0] === 0 ? false : null) : null;
+    /**
+     * NVS state, decoded as dualshock-tools does (big-endian word after the report ID):
+     * true = locked (normal, changes are temporary), false = unlocked (changes are written to memory),
+     * 'reboot' = the controller must be power-cycled, null = unknown.
+     */
+    nvsStatus() {
+      const run = async () => {
+        await this._sendFeature(0x80, [3, 3]);
+        await new Promise(r => setTimeout(r, 20));
+        const r = await this._getFeature(0x81);
+        const w = ((r[1] << 24) | (r[2] << 16) | (r[3] << 8) | r[4]) >>> 0;
+        return w === 0x03030201 ? true : w === 0x03030200 ? false : w === 0x15010100 ? 'reboot' : null;
+      };
+      const p = this._testLock.then(run, run);
+      this._testLock = p.catch(() => null);
+      return p;
+    }
+
+    /** Locks the NVS again (the normal state) without writing anything else. */
+    async nvsLock() {
+      await this._lockedFeature(0x80, [3, 1]);
+      await new Promise(r => setTimeout(r, 50));
+      return this.nvsStatus();
     }
 
     /** Commits the current (temporary) calibration to permanent memory. */

@@ -1,5 +1,12 @@
 // Portuguese translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).pt = {
+  "Mémoire de calibration : vérification en cours… (cliquez « Revérifier » si rien ne change)": "Memória de calibração: a verificar… (clique em «Verificar de novo» se nada mudar)",
+  "Redémarrage nécessaire : débranchez et rebranchez la manette": "Reinício necessário: desligue e volte a ligar o comando",
+  "Mémoire de calibration déverrouillée : verrouillez-la d'abord (bouton ci-dessous)": "Memória de calibração desbloqueada: bloqueie-a primeiro (botão abaixo)",
+  "Verrouiller la mémoire de calibration": "Bloquear a memória de calibração",
+  "Verrouillage de la mémoire…": "A bloquear a memória…",
+  "Mémoire verrouillée.": "Memória bloqueada.",
+  "Verrouillage non confirmé : débranchez et rebranchez la manette, puis cliquez « Revérifier ».": "Bloqueio não confirmado: desligue e volte a ligar o comando e clique em «Verificar de novo».",
   ", rapports altérés ": ", relatórios corrompidos ",
   "butée non atteinte (amplitude réduite : calibration de l'amplitude conseillée)": "batente não atingido (curso reduzido: aconselha-se a calibração do curso)",
   "contour trop irrégulier": "contorno demasiado irregular",

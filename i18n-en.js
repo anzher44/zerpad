@@ -1,5 +1,12 @@
 // English translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).en = {
+  "Mémoire de calibration : vérification en cours… (cliquez « Revérifier » si rien ne change)": "Calibration memory: checking… (click “Check again” if nothing changes)",
+  "Redémarrage nécessaire : débranchez et rebranchez la manette": "Restart needed: unplug and plug the controller back in",
+  "Mémoire de calibration déverrouillée : verrouillez-la d'abord (bouton ci-dessous)": "Calibration memory unlocked: lock it first (button below)",
+  "Verrouiller la mémoire de calibration": "Lock the calibration memory",
+  "Verrouillage de la mémoire…": "Locking the memory…",
+  "Mémoire verrouillée.": "Memory locked.",
+  "Verrouillage non confirmé : débranchez et rebranchez la manette, puis cliquez « Revérifier ».": "Lock not confirmed: unplug and plug the controller back in, then click “Check again”.",
   ", rapports altérés ": ", corrupted reports ",
   "butée non atteinte (amplitude réduite : calibration de l'amplitude conseillée)": "end stop not reached (reduced range: range calibration advised)",
   "contour trop irrégulier": "contour too irregular",

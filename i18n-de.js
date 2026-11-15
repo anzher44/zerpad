@@ -1,5 +1,12 @@
 // German translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).de = {
+  "Mémoire de calibration : vérification en cours… (cliquez « Revérifier » si rien ne change)": "Kalibrierspeicher: wird geprüft… („Erneut prüfen“ klicken, wenn sich nichts ändert)",
+  "Redémarrage nécessaire : débranchez et rebranchez la manette": "Neustart nötig: Controller abstecken und wieder anstecken",
+  "Mémoire de calibration déverrouillée : verrouillez-la d'abord (bouton ci-dessous)": "Kalibrierspeicher entsperrt: zuerst sperren (Schaltfläche unten)",
+  "Verrouiller la mémoire de calibration": "Kalibrierspeicher sperren",
+  "Verrouillage de la mémoire…": "Speicher wird gesperrt…",
+  "Mémoire verrouillée.": "Speicher gesperrt.",
+  "Verrouillage non confirmé : débranchez et rebranchez la manette, puis cliquez « Revérifier ».": "Sperren nicht bestätigt: Controller ab- und wieder anstecken, dann „Erneut prüfen“ klicken.",
   ", rapports altérés ": ", beschädigte Berichte ",
   "butée non atteinte (amplitude réduite : calibration de l'amplitude conseillée)": "Anschlag nicht erreicht (verringerter Weg: Kalibrierung des Wegs empfohlen)",
   "contour trop irrégulier": "Kontur zu unregelmäßig",

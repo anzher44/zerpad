@@ -1,5 +1,12 @@
 // Italian translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).it = {
+  "Mémoire de calibration : vérification en cours… (cliquez « Revérifier » si rien ne change)": "Memoria di calibrazione: verifica in corso… (fai clic su «Ricontrolla» se non cambia nulla)",
+  "Redémarrage nécessaire : débranchez et rebranchez la manette": "Riavvio necessario: scollega e ricollega il controller",
+  "Mémoire de calibration déverrouillée : verrouillez-la d'abord (bouton ci-dessous)": "Memoria di calibrazione sbloccata: bloccala prima (pulsante qui sotto)",
+  "Verrouiller la mémoire de calibration": "Blocca la memoria di calibrazione",
+  "Verrouillage de la mémoire…": "Blocco della memoria…",
+  "Mémoire verrouillée.": "Memoria bloccata.",
+  "Verrouillage non confirmé : débranchez et rebranchez la manette, puis cliquez « Revérifier ».": "Blocco non confermato: scollega e ricollega il controller, poi fai clic su «Ricontrolla».",
   ", rapports altérés ": ", report alterati ",
   "butée non atteinte (amplitude réduite : calibration de l'amplitude conseillée)": "fine corsa non raggiunto (escursione ridotta: consigliata la calibrazione dell'escursione)",
   "contour trop irrégulier": "contorno troppo irregolare",
@@ -461,7 +468,7 @@
  "Historique (ce navigateur)": "Cronologia (questo browser)",
  "Recalibration des sticks": "Ricalibrazione degli stick",
  "Conditions": "Requisiti",
- "Revérifier": "Verifica di nuovo",
+ "Revérifier": "Ricontrolla",
  "J'ai compris : je ne débrancherai pas la manette pendant la calibration.": "Ho capito: non scollegherò il controller durante la calibrazione.",
  "Mesure du centre": "Misura del centro",
  "Aucune mesure.": "Nessuna misura.",

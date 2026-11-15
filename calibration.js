@@ -22,7 +22,13 @@
       { ok: ds.model === 'DualSense', label: tr('DualSense standard (la DualSense Edge ne garde pas la calibration)') },
       { ok: !(f.cloneReasons && f.cloneReasons.length), label: tr('Manette Sony d\'origine') },
       { ok: !!bat && (bat.charging || (bat.pct != null && bat.pct >= 30)), label: tr('Batterie ≥ 30 % ou en charge') },
-      { ok: nvs === true || unsaved, label: tr('Mémoire de calibration verrouillée (les changements seront temporaires jusqu\'à sauvegarde)') },
+      nvs === 'reboot'
+        ? { ok: false, label: tr('Redémarrage nécessaire : débranchez et rebranchez la manette') }
+        : nvs === false
+          ? { ok: false, label: tr('Mémoire de calibration déverrouillée : verrouillez-la d\'abord (bouton ci-dessous)') }
+          : nvs == null && ds.device && !unsaved
+            ? { ok: false, label: tr('Mémoire de calibration : vérification en cours… (cliquez « Revérifier » si rien ne change)') }
+            : { ok: nvs === true || unsaved, label: tr('Mémoire de calibration verrouillée (les changements seront temporaires jusqu\'à sauvegarde)') },
     ];
   }
   function renderReq() {
@@ -38,7 +44,9 @@
   $('calRefresh').addEventListener('click', refreshNvs);
   $('calAck').addEventListener('change', renderButtons);
   ds.addEventListener('ready', () => { unsaved = false; before = after = null; renderCompare(); setTimeout(refreshNvs, 3000); });
-  ds.addEventListener('factory', renderReq);
+  ds.addEventListener('factory', () => { renderReq(); renderButtons(); });
+  // Conditions depend on live data (battery, factory info): keep the buttons in step while the tab is shown
+  setInterval(() => { if (!busy && document.getElementById('tab-cal').classList.contains('active')) renderButtons(); }, 1000);
   // Closing the page during a step or with unsaved changes asks for confirmation
   window.addEventListener('beforeunload', e => { if (ds.device && (busy || unsaved)) { e.preventDefault(); e.returnValue = ''; } });
   ds.addEventListener('closed', () => { busy = false; unsaved = false; nvs = null; renderReq(); renderButtons(); setStep(() => tr('Manette déconnectée.')); });
@@ -64,7 +72,7 @@
     $('calCompare').innerHTML = (row(tr('Avant'), before) + row(tr('Après'), after)) || tr('<tr><td>Aucune mesure.</td></tr>');
   }
   $('calMeasure').addEventListener('click', async () => {
-    if (!ds.device || busy) return;
+    if (!ds.device || busy || !ds.state) return;
     setStep(() => tr('Mesure en cours : ne touchez pas les sticks…'));
     const m = await measure();
     if (unsaved) after = m; else before = m;
@@ -108,10 +116,22 @@
       ? tr('Calibration modifiée en mémoire temporaire. Sauvegardez-la, ou annulez (le redémarrage restaure l\'ancienne).')
       : tr('Aucun changement en cours.');
     if (busy) return;
-    actions([
+    const list = [
       [tr('1. Calibrer le centre'), 'primary', runCenter, !ready],
       [tr('2. Calibrer l\'amplitude'), 'primary', runRange, !ready],
-    ]);
+    ];
+    // Left unlocked by another tool: lock it again so that the next calibration stays temporary
+    if (nvs === false && ds.device) list.push([tr('Verrouiller la mémoire de calibration'), 'ghost', lockNvs]);
+    actions(list);
+  }
+  async function lockNvs() {
+    if (busy || !ds.device) return;
+    busy = true; actions([]);
+    setStep(() => tr('Verrouillage de la mémoire…'));
+    try { nvs = await ds.nvsLock(); } catch (e) { nvs = null; }
+    busy = false;
+    setStep(() => nvs === true ? tr('Mémoire verrouillée.') : tr('Verrouillage non confirmé : débranchez et rebranchez la manette, puis cliquez « Revérifier ».'));
+    renderButtons();
   }
   function fail(e) {
     busy = false;
