@@ -109,7 +109,7 @@
       this.lastRaw = null;
       this.simpleMode = false;
       this.reportCount = 0;
-      this.seqStats = { n: 0, ones: 0, lost: 0 };   // input report sequence counter, used for packet loss
+      this.seqStats = { n: 0, ones: 0, lost: 0, crcBad: 0 };   // input report sequence counter, used for packet loss
       this.reportRate = 0;
       this._rateT0 = 0; this._rateN = 0; this._prevT = 0; this._gapW = 0; this.maxGap = 0;
       this._btSeq = 0;
@@ -189,11 +189,17 @@
 
     log(msg) { this.dispatchEvent(new CustomEvent('log', { detail: msg })); }
 
-    async _getFeature(id) {
-      const dv = await this.device.receiveFeatureReport(id);
-      let u8 = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
-      // Normalize: byte 0 = report ID
-      if (u8[0] !== id) { const t = new Uint8Array(u8.length + 1); t[0] = id; t.set(u8, 1); u8 = t; }
+    async _getFeature(id, checkCrc) {
+      let u8;
+      for (let attempt = 0; ; attempt++) {
+        const dv = await this.device.receiveFeatureReport(id);
+        u8 = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+        // Normalize: byte 0 = report ID
+        if (u8[0] !== id) { const t = new Uint8Array(u8.length + 1); t[0] = id; t.set(u8, 1); u8 = t; }
+        // Over Bluetooth the last 4 bytes are a CRC32 over 0xa3 + the report; a corrupted answer is read again
+        if (!checkCrc || this.transport !== 'bt' || u8.length < 8 || btCrcOk(0xa3, u8, 0, u8.length - 4)) break;
+        if (attempt >= 2) throw new Error('bad CRC on feature report 0x' + hex(id));
+      }
       this.features[id] = u8.slice();
       return u8;
     }
@@ -201,20 +207,20 @@
     async _readFeatures() {
       // 0x05: IMU calibration (reading it also enables full reports over Bluetooth)
       try {
-        const b = await this._getFeature(FR_CALIBRATION);
+        const b = await this._getFeature(FR_CALIBRATION, true);
         this.calib = parseCalibration(b);
         this.log('IMU calibration read (' + b.length + ' bytes)');
       } catch (e) { this.log('IMU calibration unreadable: ' + e.message); }
 
       try {
-        const b = await this._getFeature(FR_PAIRING);
+        const b = await this._getFeature(FR_PAIRING, true);
         const mac = [];
         for (let i = 6; i >= 1; i--) mac.push(hex(b[i]));
         this.info.mac = mac.join(':');
       } catch (e) { this.log('MAC address unreadable: ' + e.message); }
 
       try {
-        const b = await this._getFeature(FR_FIRMWARE);
+        const b = await this._getFeature(FR_FIRMWARE, true);
         const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
         const ascii = (a, z) => String.fromCharCode(...b.slice(a, z)).replace(/\0/g, '').trim();
         this.info.buildDate = ascii(1, 12);
@@ -477,6 +483,8 @@
       let st;
       if (id === 0x31 && u8.length >= 64) {
         if (this.transport !== 'bt') { this.transport = 'bt'; this.dispatchEvent(new Event('transport')); }
+        // CRC32 over 0xa1, 0x31 and the first 73 bytes; a corrupted report would look like a stick jump
+        if (u8.length >= 77 && !btCrcOk(0xa1, u8, 0, 73, 0x31)) { this.seqStats.crcBad++; return; }
         this.simpleMode = false;
         st = parseFull(u8, 1, this.calib);
       } else if (id === 0x01 && u8.length >= 63) {
@@ -600,6 +608,15 @@
       });
       return this._sending;
     }
+  }
+
+  // Bluetooth integrity check: crc32(prefix [, reportId], bytes[start..end)) == the 4 bytes that follow
+  function btCrcOk(prefix, u8, start, end, reportId) {
+    const head = reportId == null ? [prefix] : [prefix, reportId];
+    const buf = new Uint8Array(head.length + end - start);
+    buf.set(head, 0); buf.set(u8.subarray(start, end), head.length);
+    const want = (u8[end] | (u8[end + 1] << 8) | (u8[end + 2] << 16) | (u8[end + 3] << 24)) >>> 0;
+    return crc32(buf) === want;
   }
 
   function guessTransport(device) {

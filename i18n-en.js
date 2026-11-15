@@ -1,5 +1,6 @@
 // English translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).en = {
+  ", rapports altérés ": ", corrupted reports ",
   "butée non atteinte (amplitude réduite : calibration de l'amplitude conseillée)": "end stop not reached (reduced range: range calibration advised)",
   "contour trop irrégulier": "contour too irregular",
   " (décalage constant, compensé par la console)": " (constant offset, cancelled by the console)",

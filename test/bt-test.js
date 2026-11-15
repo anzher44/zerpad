@@ -21,6 +21,8 @@ function mock(pid) {
       if (id === 0x09) [1,2,3,4,5,6].forEach((x, i) => b[1 + i] = x);
       if (id === 0x05) { const v = new DataView(b.buffer); [0,0,0,8800,-8800,8800,-8800,8800,-8800,540,540,8192,-8192,8192,-8192,8192,-8192].forEach((x, i) => v.setInt16(1 + i * 2, x, true)); }
       if (id === 0x81) { b[1] = 0; }
+      const c = crc32([0xa3, ...b.slice(0, b.length - 4)]);
+      b[b.length - 4] = c & 0xff; b[b.length - 3] = (c >>> 8) & 0xff; b[b.length - 2] = (c >>> 16) & 0xff; b[b.length - 1] = (c >>> 24) & 0xff;
       return new DataView(b.buffer);
     }
     async sendFeatureReport(id, data) {
@@ -43,6 +45,8 @@ function mock(pid) {
       u[o] = s.lx; u[o + 1] = s.ly; u[o + 2] = 128; u[o + 3] = 128; u[o + 6] = this.seq; u[o + 7] = s.b0; u[o + 8] = 0; u[o + 9] = s.b2;
       const v = new DataView(u.buffer); v.setInt16(o + 23, 8192, true);
       u[o + 32] = 0x80; u[o + 36] = 0x80; u[o + 52] = 0x05;
+      if (window.__corrupt) { u[o] = 255; window.__corrupt = false; }   // one bad report: wrong CRC, must be dropped
+      else { const c = crc32([0xa1, 0x31, ...u.slice(0, 73)]); u[73] = c & 0xff; u[74] = (c >>> 8) & 0xff; u[75] = (c >>> 16) & 0xff; u[76] = (c >>> 24) & 0xff; }
       const e = new Event('inputreport'); e.reportId = 0x31; e.data = new DataView(u.buffer); this.dispatchEvent(e);
     }
   }
@@ -82,10 +86,12 @@ function mock(pid) {
     await page.click('.tab[data-tab=cal]');
     await page.waitForTimeout(200);
     const calReq = await page.textContent('#calReq');
+    // a corrupted report must not reach the state
+    const crc = await page.evaluate(async () => { window.__corrupt = true; await new Promise(r => setTimeout(r, 60)); return [window.ds.seqStats.crcBad, window.ds.state.lx]; });
     console.log(name, JSON.stringify(r));
-    console.log('  rumble reports in 1 s:', n1 - n0, '| calibration:', calReq.replace(/\s+/g, ' ').slice(0, 160));
+    console.log('  rumble reports in 1 s:', n1 - n0, '| calibration:', calReq.replace(/\s+/g, ' ').slice(0, 160), '| dropped:', crc[0], 'lx', crc[1]);
     const ok = r.conn === 'Bluetooth' && /Complet/.test(r.mode) && r.powerOff && r.outs.every(o => o.len === 77 && o.crcOk) &&
-      r.feats.every(f => f.len === 63 && f.crcOk) && (n1 - n0) >= 8 && r.buttons === (pid === '0x0df2' ? 23 : 19);
+      r.feats.every(f => f.len === 63 && f.crcOk) && (n1 - n0) >= 8 && r.buttons === (pid === '0x0df2' ? 23 : 19) && crc[0] === 1 && crc[1] === 128;
     console.log('  ' + (ok ? 'OK' : 'FAIL'), errors.length ? 'errors: ' + errors.join(' | ') : '');
     if (!ok || errors.length) failures++;
     await page.close();

@@ -1,5 +1,6 @@
 // Italian translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).it = {
+  ", rapports altérés ": ", report alterati ",
   "butée non atteinte (amplitude réduite : calibration de l'amplitude conseillée)": "fine corsa non raggiunto (escursione ridotta: consigliata la calibrazione dell'escursione)",
   "contour trop irrégulier": "contorno troppo irregolare",
   " (décalage constant, compensé par la console)": " (scostamento costante, compensato dalla console)",

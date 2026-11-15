@@ -220,6 +220,7 @@
     } catch (e) { fail(e); }
   });
   $('calCancel').addEventListener('click', async () => {
+    if (!ds.device || busy) return;
     if (!confirm(tr('Redémarrer la manette pour annuler les changements non sauvegardés ?'))) return;
     busy = true; renderButtons();
     await ds.reboot();

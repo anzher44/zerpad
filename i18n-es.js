@@ -1,5 +1,6 @@
 // Spanish translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).es = {
+  ", rapports altérés ": ", informes alterados ",
   "butée non atteinte (amplitude réduite : calibration de l'amplitude conseillée)": "tope no alcanzado (recorrido reducido: se aconseja calibrar el recorrido)",
   "contour trop irrégulier": "contorno demasiado irregular",
   " (décalage constant, compensé par la console)": " (desviación constante, compensada por la consola)",

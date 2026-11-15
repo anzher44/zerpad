@@ -1,5 +1,6 @@
 // German translations. Keys are the French strings used in the code and the page.
 (window.I18N_DICT = window.I18N_DICT || {}).de = {
+  ", rapports altérés ": ", beschädigte Berichte ",
   "butée non atteinte (amplitude réduite : calibration de l'amplitude conseillée)": "Anschlag nicht erreicht (verringerter Weg: Kalibrierung des Wegs empfohlen)",
   "contour trop irrégulier": "Kontur zu unregelmäßig",
   " (décalage constant, compensé par la console)": " (konstanter Versatz, von der Konsole ausgeglichen)",

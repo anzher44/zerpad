@@ -3,7 +3,7 @@
   'use strict';
   // Numbers in the reader's format (3,2 in French, 3.2 in English)
   const nf = (v, d) => Number(v).toLocaleString(I18N.locale, d == null ? { maximumFractionDigits: 2 } : { minimumFractionDigits: d, maximumFractionDigits: d });
-  const VERSION = '3.0.2';
+  const VERSION = '3.0.3';
   const { hex, hexDump, TriggerFx, fwString, TOUCH_W, TOUCH_H } = window.DSUtil;
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -718,16 +718,16 @@
           t.status = 'running'; renderTests();
           const c0 = ds.reportCount, q0 = { ...ds.seqStats }; await sleep(1200);
           const n = ds.reportCount - c0;
-          const qn = ds.seqStats.n - q0.n, qOnes = ds.seqStats.ones - q0.ones, qLost = ds.seqStats.lost - q0.lost;
+          const qn = ds.seqStats.n - q0.n, qOnes = ds.seqStats.ones - q0.ones, qLost = ds.seqStats.lost - q0.lost, qBad = ds.seqStats.crcBad - (q0.crcBad || 0);
           // the counter is only trusted when it mostly advances by one per report
           const lossPct = qn > 20 && qOnes / qn > 0.5 ? qLost / (qLost + qn) * 100 : null;
           const okLoss = lossPct == null || lossPct < 5;
           const okFw = ds.info.fwVersion != null, okMac = !!ds.info.mac, okCal = !!(ds.calib && ds.calib.valid);
           const okRate = n / 1.2 > 100;
-          t.data = { reportsPerSec: Math.round(n / 1.2), lossPercent: lossPct == null ? null : +lossPct.toFixed(2), firmware: okFw, mac: okMac, calibration: okCal, simpleMode: ds.simpleMode };
+          t.data = { reportsPerSec: Math.round(n / 1.2), lossPercent: lossPct == null ? null : +lossPct.toFixed(2), corruptedReports: qBad, firmware: okFw, mac: okMac, calibration: okCal, simpleMode: ds.simpleMode };
           t.detail = [
             Math.round(n / 1.2) + tr(' rapports/s') + (okRate ? '' : tr(' (trop peu)')),
-            lossPct == null ? tr('pertes non mesurées') : tr('pertes ') + nf(lossPct, 1) + ' %',
+            lossPct == null ? tr('pertes non mesurées') : tr('pertes ') + nf(lossPct, 1) + ' %' + (qBad ? tr(', rapports altérés ') + qBad : ''),
             'firmware ' + yesNo(okFw), 'MAC ' + yesNo(okMac), tr('calibration IMU ') + yesNo(okCal),
             ds.simpleMode ? tr('mode simplifié, capteurs indisponibles') : tr('rapport complet'),
           ].join(', ');
