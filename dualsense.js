@@ -340,7 +340,8 @@
       const year = parseInt(String(this.info.buildDate || '').trim().slice(-4), 10);
       const reasons = [];
       if (year && year > new Date().getFullYear()) reasons.push('firmware daté du futur (' + year + ')');
-      if (!f.finetuneAnswered && this.transport === 'usb') reasons.push('ne répond pas à la requête de calibration des sticks');
+      // a copy answers neither the serial number nor the fine-tune query; one missing answer alone is only noted
+      if (!f.finetuneAnswered && !f.serial && this.transport === 'usb') reasons.push('ne répond pas aux commandes Sony (numéro de série, calibration des sticks)');
       if (this.info.fwVersion == null) reasons.push('informations firmware illisibles');
       f.cloneReasons = reasons;
       // Publish the essentials right away, then fill in the rest
