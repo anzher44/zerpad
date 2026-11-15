@@ -79,17 +79,20 @@
     renderCompare(); setStep(() => tr('Mesure terminée.'));
   });
 
-  // Waits until both sticks rest near the center and stay still
+  // Waits until both sticks are released and still. A stick that needs this calibration may rest far
+  // from the center, so only stillness is required, plus not being held at the edge.
   async function waitCentered(timeout = 6000) {
     const t0 = performance.now();
-    let stableSince = null;
+    let stableSince = null, ref = null;
     while (performance.now() - t0 < timeout) {
       if (!ds.device) throw new Error(tr('Manette déconnectée.'));
       const st = ds.state;
       if (st) {
-        const ok = Math.hypot(norm(st.lx), norm(st.ly)) < 0.15 && Math.hypot(norm(st.rx), norm(st.ry)) < 0.15;
-        if (ok) { stableSince = stableSince || performance.now(); if (performance.now() - stableSince > 500) return true; }
-        else stableSince = null;
+        const cur = [norm(st.lx), norm(st.ly), norm(st.rx), norm(st.ry)];
+        const released = Math.hypot(cur[0], cur[1]) < 0.5 && Math.hypot(cur[2], cur[3]) < 0.5;
+        const still = ref && cur.every((v, i) => Math.abs(v - ref[i]) < 0.03);
+        if (released && still) { stableSince = stableSince || performance.now(); if (performance.now() - stableSince > 500) return true; }
+        else { stableSince = null; ref = cur; }
       }
       await sleep(30);
     }
